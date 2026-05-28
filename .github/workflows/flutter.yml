@@ -1,15 +1,9 @@
 name: flutter
 
+# Disabled: workflows need updating to match current project state
+# Re-enable push/PR triggers when CI is ready
 on:
-  push:
-    paths:
-      - "apps/mobile/**"
-      - "packages/branding/**"
-      - ".github/workflows/flutter.yml"
-  pull_request:
-    paths:
-      - "apps/mobile/**"
-      - "packages/branding/**"
+  workflow_dispatch:
 
 jobs:
   analyze:

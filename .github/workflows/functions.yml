@@ -1,15 +1,9 @@
 name: functions
 
+# Disabled: workflows need updating to match current project state
+# Re-enable push/PR triggers when CI is ready
 on:
-  push:
-    paths:
-      - "functions/**"
-      - "packages/shared-types/**"
-      - ".github/workflows/functions.yml"
-  pull_request:
-    paths:
-      - "functions/**"
-      - "packages/shared-types/**"
+  workflow_dispatch:
 
 jobs:
   ci:

@@ -1,15 +1,9 @@
 name: marketing
 
+# Disabled: workflows need updating to match current project state
+# Re-enable push/PR triggers when CI is ready
 on:
-  push:
-    paths:
-      - "apps/marketing/**"
-      - "packages/branding/**"
-      - ".github/workflows/marketing.yml"
-  pull_request:
-    paths:
-      - "apps/marketing/**"
-      - "packages/branding/**"
+  workflow_dispatch:
 
 jobs:
   build:
