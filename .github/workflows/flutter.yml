@@ -1,0 +1,36 @@
+name: flutter
+
+on:
+  push:
+    paths:
+      - "apps/mobile/**"
+      - "packages/branding/**"
+      - ".github/workflows/flutter.yml"
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - "packages/branding/**"
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run branding
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - working-directory: apps/mobile
+        run: |
+          flutter create . --platforms=ios,android,web --org app.tandem --project-name tandem
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          dart format --output=none --set-exit-if-changed .
+          flutter analyze
+          flutter test

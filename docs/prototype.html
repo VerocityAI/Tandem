@@ -1,0 +1,1616 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabMatch YouTube Prototype</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+
+    .panel,
+    .card {
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: var(--cp-shadow);
+    }
+
+    .hero-main {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-main::after {
+      content: "";
+      position: absolute;
+      inset: auto 24px 24px auto;
+      width: 180px;
+      height: 180px;
+      border-radius: 16px;
+      background: var(--cp-accent-soft);
+      transform: rotate(10deg);
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: var(--cp-text-muted);
+      font-size: 18px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .hero-actions,
+    .row,
+    .chips,
+    .toolbar,
+    .card-actions,
+    .inline {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 10px 14px;
+      border-radius: 0.625rem;
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .button:hover {
+      background: var(--cp-accent-hover);
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    .button.secondary {
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      border: 1px solid var(--cp-border);
+    }
+
+    .button.ghost {
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      border: 1px solid var(--cp-border);
+    }
+
+    .hero-side {
+      padding: 20px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--cp-accent);
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      color: var(--cp-text-muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .sidebar {
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    label {
+      display: block;
+      color: var(--cp-text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 84px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--cp-accent);
+      box-shadow: 0 0 0 3px var(--cp-accent-soft);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .channel-analyzer {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 14px;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-surface-soft);
+    }
+
+    .profile-card {
+      display: none;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 14px;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-accent-soft);
+    }
+
+    .profile-card.visible {
+      display: grid;
+    }
+
+    .profile-card h3 {
+      margin-bottom: 0;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .insight-list li {
+      padding: 8px 10px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .hint,
+    .muted {
+      color: var(--cp-text-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .main {
+      display: grid;
+      gap: 16px;
+    }
+
+    .toolbar {
+      justify-content: space-between;
+      padding: 14px 16px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      min-width: min(100%, 340px);
+    }
+
+    .creator-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .creator-card {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .creator-head {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      font-weight: 800;
+      border: 1px solid var(--cp-border);
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .creator-title {
+      min-width: 0;
+    }
+
+    .creator-title h3 {
+      margin: 0 0 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .creator-title a {
+      color: var(--cp-link);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .score-ring {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--cp-border);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border-radius: 0.625rem;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .chip.accent {
+      color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      padding: 10px;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+      border-radius: 0.625rem;
+    }
+
+    .metric b {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 15px;
+    }
+
+    .metric span {
+      color: var(--cp-text-muted);
+      font-size: 11px;
+    }
+
+    .reason {
+      padding: 12px;
+      border-left: 4px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-text);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .mini-bars {
+      display: grid;
+      gap: 8px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr) 38px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--cp-text-muted);
+    }
+
+    .bar {
+      height: 8px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      background: var(--cp-accent);
+      border-radius: 0.625rem;
+    }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--cp-text-muted);
+    }
+
+    .api-status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      color: var(--cp-text-muted);
+      font-size: 13px;
+      display: none;
+    }
+
+    .api-status.visible {
+      display: block;
+    }
+
+    .api-status.ok {
+      color: var(--cp-success);
+    }
+
+    .api-status.error {
+      color: var(--cp-danger);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: var(--cp-overlay);
+      z-index: 20;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(720px, 100%);
+      max-height: min(760px, 92vh);
+      overflow: auto;
+      padding: 22px;
+      background: var(--cp-panel-strong);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: var(--cp-shadow);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .shortlist {
+      display: grid;
+      gap: 8px;
+    }
+
+    .shortlist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      font-size: 13px;
+    }
+
+    .close {
+      min-width: 36px;
+      min-height: 36px;
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      border: 1px solid var(--cp-border);
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      padding: 14px;
+      color: var(--cp-text-muted);
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      border-radius: 16px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .grid,
+      .creator-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .app {
+        padding: 12px;
+      }
+
+      .hero-main {
+        padding: 20px;
+      }
+
+      .field-grid,
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .creator-head {
+        grid-template-columns: 52px minmax(0, 1fr);
+      }
+
+      .score-ring {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <section class="hero">
+        <div class="panel hero-main">
+          <div class="hero-content">
+            <div class="eyebrow">YouTube-first prototype</div>
+            <h1>Analyze a channel, then find creator partners.</h1>
+            <p class="lead">CollabMatch asks for a YouTube channel, builds a public-profile based creator brief, and recommends collaborators by niche, audience fit, geography, engagement, and content style. It works with mock profiling by default and can use the YouTube Data API when you add a key.</p>
+            <div class="hero-actions">
+              <button class="button" id="scrollToMatches">View matches</button>
+              <button class="button secondary" id="openBrief">How scoring works</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel hero-side">
+          <div class="stat"><strong id="statCreators">0</strong><span>candidate creators in the workspace</span></div>
+          <div class="stat"><strong id="statAvg">0</strong><span>average fit score after filters</span></div>
+          <div class="stat"><strong id="statSaved">0</strong><span>saved collaboration prospects</span></div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <aside class="sidebar">
+          <div class="panel section">
+            <h2>Your creator profile</h2>
+            <div class="channel-analyzer">
+              <div>
+                <label for="channelInput">YouTube channel URL, @handle, channel ID, or name</label>
+                <input id="channelInput" value="@UrbanFoodStories" placeholder="https://youtube.com/@yourchannel">
+              </div>
+              <div class="row">
+                <button class="button" id="analyzeChannel">Analyze channel</button>
+                <button class="button secondary" id="useDemoProfile">Use demo profile</button>
+              </div>
+              <p class="hint">Without an API key, the prototype creates a realistic mock profile from the channel text. With an API key, it fetches public YouTube metadata first.</p>
+              <div class="api-status" id="profileStatus"></div>
+            </div>
+            <div class="profile-card" id="profileSummary"></div>
+            <div class="field-grid">
+              <div class="full">
+                <label for="profileName">Channel name</label>
+                <input id="profileName" value="Urban Food Stories">
+              </div>
+              <div>
+                <label for="profileNiche">Primary niche</label>
+                <select id="profileNiche">
+                  <option>Food</option>
+                  <option>Fitness</option>
+                  <option>Travel</option>
+                  <option>Finance</option>
+                  <option>Tech</option>
+                  <option>Beauty</option>
+                  <option>Education</option>
+                </select>
+              </div>
+              <div>
+                <label for="profileAudience">Audience size</label>
+                <select id="profileAudience">
+                  <option value="micro">Micro: 10K-100K</option>
+                  <option value="mid" selected>Mid: 100K-500K</option>
+                  <option value="large">Large: 500K-1M</option>
+                  <option value="mega">Mega: 1M+</option>
+                </select>
+              </div>
+              <div>
+                <label for="profileRegion">Region</label>
+                <select id="profileRegion">
+                  <option>India</option>
+                  <option selected>UAE</option>
+                  <option>US</option>
+                  <option>UK</option>
+                  <option>Global</option>
+                </select>
+              </div>
+              <div>
+                <label for="profileFormat">Preferred collab</label>
+                <select id="profileFormat">
+                  <option selected>Shorts swap</option>
+                  <option>Long-form guest</option>
+                  <option>Live stream</option>
+                  <option>Series collab</option>
+                  <option>Giveaway</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel section">
+            <h2>Filters</h2>
+            <div class="field-grid">
+              <div>
+                <label for="nicheFilter">Niche</label>
+                <select id="nicheFilter">
+                  <option value="all">All niches</option>
+                  <option>Food</option>
+                  <option>Fitness</option>
+                  <option>Travel</option>
+                  <option>Finance</option>
+                  <option>Tech</option>
+                  <option>Beauty</option>
+                  <option>Education</option>
+                </select>
+              </div>
+              <div>
+                <label for="regionFilter">Region</label>
+                <select id="regionFilter">
+                  <option value="all">All regions</option>
+                  <option>India</option>
+                  <option>UAE</option>
+                  <option>US</option>
+                  <option>UK</option>
+                  <option>Global</option>
+                </select>
+              </div>
+              <div>
+                <label for="minScore">Minimum score</label>
+                <select id="minScore">
+                  <option value="0">Any score</option>
+                  <option value="70" selected>70+</option>
+                  <option value="80">80+</option>
+                  <option value="90">90+</option>
+                </select>
+              </div>
+              <div>
+                <label for="formatFilter">Collab type</label>
+                <select id="formatFilter">
+                  <option value="all">Any type</option>
+                  <option>Shorts swap</option>
+                  <option>Long-form guest</option>
+                  <option>Live stream</option>
+                  <option>Series collab</option>
+                  <option>Giveaway</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel section">
+            <h2>Optional YouTube API live mode</h2>
+            <p class="hint">Paste a YouTube Data API key to analyze real public channel metadata and search live collaborator candidates. This is only for local prototyping; production should proxy API calls server-side.</p>
+            <div class="field-grid">
+              <div class="full">
+                <label for="apiKey">YouTube API key</label>
+                <input id="apiKey" type="password" placeholder="AIza...">
+              </div>
+              <div class="full">
+                <label for="youtubeQuery">Search query</label>
+                <input id="youtubeQuery" value="Dubai food creator">
+              </div>
+              <div class="full">
+                <button class="button" id="youtubeSearch">Search YouTube</button>
+                <button class="button secondary" id="resetMock">Reset sample data</button>
+                <div class="api-status" id="apiStatus"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel section">
+            <h2>Shortlist</h2>
+            <div class="shortlist" id="shortlist"></div>
+          </div>
+        </aside>
+
+        <main class="main" id="matches">
+          <div class="panel toolbar">
+            <div class="toolbar-left">
+              <input class="search-box" id="textSearch" placeholder="Search creators, niche, region, or keywords">
+              <button class="button secondary" id="sortScore">Sort by score</button>
+              <button class="button secondary" id="sortReach">Sort by reach</button>
+            </div>
+            <span class="muted" id="resultCount">0 matches</span>
+          </div>
+          <div class="creator-grid" id="creatorGrid"></div>
+          <div class="footer-note">
+            Prototype note: YouTube public APIs can discover channels and fetch public channel stats. Audience demographics and true collaboration outcomes require creator consent or post-collab reporting.
+          </div>
+        </main>
+      </section>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="briefModal">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2>Collab Fit Score model</h2>
+          <p class="muted">The MVP score is intentionally explainable so creators trust recommendations.</p>
+        </div>
+        <button class="close" id="closeBrief">X</button>
+      </div>
+      <div class="mini-bars">
+        <div class="bar-row"><span>Niche fit</span><div class="bar"><span style="width: 25%"></span></div><strong>25%</strong></div>
+        <div class="bar-row"><span>Audience size</span><div class="bar"><span style="width: 15%"></span></div><strong>15%</strong></div>
+        <div class="bar-row"><span>Engagement</span><div class="bar"><span style="width: 15%"></span></div><strong>15%</strong></div>
+        <div class="bar-row"><span>Region</span><div class="bar"><span style="width: 10%"></span></div><strong>10%</strong></div>
+        <div class="bar-row"><span>Format</span><div class="bar"><span style="width: 15%"></span></div><strong>15%</strong></div>
+        <div class="bar-row"><span>Content style</span><div class="bar"><span style="width: 20%"></span></div><strong>20%</strong></div>
+      </div>
+      <p class="hint" style="margin-top: 16px;">Future versions should add audience overlap, comment sentiment, upload cadence, brand safety, and verified consented analytics from creators.</p>
+    </div>
+  </div>
+
+  <script>
+    const seedCreators = [
+      {
+        id: "c1",
+        name: "Dubai Bites Daily",
+        handle: "@DubaiBitesDaily",
+        niche: "Food",
+        subNiche: "Restaurants, street food, hidden gems",
+        region: "UAE",
+        followers: 182000,
+        views: 14300000,
+        engagement: 4.8,
+        format: "Shorts swap",
+        style: ["shorts", "reviews", "family"],
+        description: "Short-form food reviews across Dubai malls, night markets, and local gems.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c2",
+        name: "Fit Plate India",
+        handle: "@FitPlateIndia",
+        niche: "Fitness",
+        subNiche: "Nutrition, fat loss, meal prep",
+        region: "India",
+        followers: 215000,
+        views: 20900000,
+        engagement: 5.2,
+        format: "Series collab",
+        style: ["education", "shorts", "meal prep"],
+        description: "Meal prep and nutrition channel for busy professionals and fitness beginners.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c3",
+        name: "Budget Dubai Explorer",
+        handle: "@BudgetDubaiExplorer",
+        niche: "Travel",
+        subNiche: "Budget travel, local experiences",
+        region: "UAE",
+        followers: 96000,
+        views: 8400000,
+        engagement: 6.1,
+        format: "Shorts swap",
+        style: ["shorts", "guides", "budget"],
+        description: "Affordable experiences, food walks, transport tips, and weekend itineraries in Dubai.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c4",
+        name: "Creator Money School",
+        handle: "@CreatorMoneySchool",
+        niche: "Finance",
+        subNiche: "Creator monetization, sponsorships",
+        region: "Global",
+        followers: 148000,
+        views: 11900000,
+        engagement: 3.9,
+        format: "Long-form guest",
+        style: ["education", "interviews", "templates"],
+        description: "Helps creators price sponsorships, build media kits, and diversify revenue.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c5",
+        name: "Gadget Table",
+        handle: "@GadgetTable",
+        niche: "Tech",
+        subNiche: "Creator gear, cameras, mobile workflow",
+        region: "India",
+        followers: 410000,
+        views: 38600000,
+        engagement: 4.1,
+        format: "Long-form guest",
+        style: ["reviews", "tutorials", "gear"],
+        description: "Tech reviews focused on creator gear, phones, microphones, and desk setups.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c6",
+        name: "Glow With Sana",
+        handle: "@GlowWithSana",
+        niche: "Beauty",
+        subNiche: "Skincare, modest fashion, lifestyle",
+        region: "UAE",
+        followers: 238000,
+        views: 17600000,
+        engagement: 5.7,
+        format: "Giveaway",
+        style: ["shorts", "reviews", "lifestyle"],
+        description: "Beauty and lifestyle creator focused on skincare routines and UAE shopping finds.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c7",
+        name: "Learn With Zoya",
+        handle: "@LearnWithZoya",
+        niche: "Education",
+        subNiche: "Study skills, productivity, young professionals",
+        region: "India",
+        followers: 129000,
+        views: 9200000,
+        engagement: 4.5,
+        format: "Live stream",
+        style: ["education", "productivity", "live"],
+        description: "Study systems, productivity habits, and career confidence for students.",
+        thumbnail: "",
+        source: "Sample"
+      },
+      {
+        id: "c8",
+        name: "Weekend Plates",
+        handle: "@WeekendPlates",
+        niche: "Food",
+        subNiche: "Home cooking, restaurant recreations",
+        region: "India",
+        followers: 164000,
+        views: 13300000,
+        engagement: 5.4,
+        format: "Series collab",
+        style: ["cooking", "shorts", "family"],
+        description: "Recreates restaurant dishes at home with practical weekend recipes.",
+        thumbnail: "",
+        source: "Sample"
+      }
+    ];
+
+    const adjacent = {
+      Food: ["Travel", "Fitness", "Beauty"],
+      Fitness: ["Food", "Education", "Beauty"],
+      Travel: ["Food", "Tech", "Education"],
+      Finance: ["Tech", "Education"],
+      Tech: ["Finance", "Education", "Travel"],
+      Beauty: ["Food", "Fitness"],
+      Education: ["Finance", "Tech", "Fitness", "Travel"]
+    };
+
+    const state = {
+      creators: [...seedCreators],
+      saved: new Set(),
+      sort: "score",
+      profile: null
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    function compactNumber(value) {
+      return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+    }
+
+    function audienceTier(followers) {
+      if (followers < 100000) return "micro";
+      if (followers < 500000) return "mid";
+      if (followers < 1000000) return "large";
+      return "mega";
+    }
+
+    function scoreCreator(creator) {
+      const myNiche = el("profileNiche").value;
+      const myTier = el("profileAudience").value;
+      const myRegion = el("profileRegion").value;
+      const myFormat = el("profileFormat").value;
+      const nicheScore = creator.niche === myNiche ? 25 : (adjacent[myNiche] || []).includes(creator.niche) ? 17 : 6;
+      const tierScore = audienceTier(creator.followers) === myTier ? 15 : 8;
+      const engagementScore = Math.min(15, Math.round(creator.engagement * 2.4));
+      const regionScore = creator.region === myRegion || creator.region === "Global" || myRegion === "Global" ? 10 : 4;
+      const formatScore = creator.format === myFormat ? 15 : 8;
+      const profileTopics = state.profile?.topics || [];
+      const styleOverlap = profileTopics.filter((topic) => creator.style.some((style) => style.includes(topic) || topic.includes(style))).length;
+      const styleScore = styleOverlap ? 20 : creator.style.includes("shorts") ? 14 : 10;
+      return Math.min(100, nicheScore + tierScore + engagementScore + regionScore + formatScore + styleScore);
+    }
+
+    function scoreBreakdown(creator) {
+      const myNiche = el("profileNiche").value;
+      const myTier = el("profileAudience").value;
+      const myRegion = el("profileRegion").value;
+      const myFormat = el("profileFormat").value;
+      return [
+        { label: "Niche", value: creator.niche === myNiche ? 100 : (adjacent[myNiche] || []).includes(creator.niche) ? 68 : 24 },
+        { label: "Audience", value: audienceTier(creator.followers) === myTier ? 100 : 54 },
+        { label: "Engagement", value: Math.min(100, Math.round(creator.engagement * 16)) },
+        { label: "Region", value: creator.region === myRegion || creator.region === "Global" || myRegion === "Global" ? 100 : 40 },
+        { label: "Format", value: creator.format === myFormat ? 100 : 54 },
+        { label: "Style", value: (state.profile?.topics || []).some((topic) => creator.style.some((style) => style.includes(topic) || topic.includes(style))) ? 100 : 52 }
+      ];
+    }
+
+    function matchReason(creator, score) {
+      const myNiche = el("profileNiche").value;
+      const myRegion = el("profileRegion").value;
+      const parts = [];
+      if (creator.niche === myNiche) parts.push("same primary niche");
+      else if ((adjacent[myNiche] || []).includes(creator.niche)) parts.push("adjacent niche with crossover potential");
+      if (creator.region === myRegion || creator.region === "Global") parts.push("relevant audience geography");
+      if (creator.engagement >= 5) parts.push("strong engagement quality");
+      if (audienceTier(creator.followers) === el("profileAudience").value) parts.push("similar audience size");
+      if ((state.profile?.topics || []).some((topic) => creator.style.some((style) => style.includes(topic) || topic.includes(style)))) parts.push("content style overlap");
+      const intro = score >= 85 ? "Excellent partner candidate" : score >= 75 ? "Strong match" : "Potential match";
+      return `${intro}: ${parts.join(", ")}. Suggested angle: ${suggestedCollab(creator)}.`;
+    }
+
+    function suggestedCollab(creator) {
+      if (creator.niche === "Food") return "two-part Shorts swap featuring each creator's favorite local spots";
+      if (creator.niche === "Travel") return "budget itinerary plus food-stop crossover";
+      if (creator.niche === "Fitness") return "nutrition and routine mini-series";
+      if (creator.niche === "Tech") return "creator workflow or gear review collaboration";
+      if (creator.niche === "Finance") return "creator monetization interview";
+      if (creator.niche === "Beauty") return "shopping guide or giveaway";
+      return "educational live session or Q&A";
+    }
+
+    function getFilteredCreators() {
+      const query = el("textSearch").value.trim().toLowerCase();
+      const niche = el("nicheFilter").value;
+      const region = el("regionFilter").value;
+      const minScore = Number(el("minScore").value);
+      const format = el("formatFilter").value;
+      let rows = state.creators
+        .map((creator) => ({ ...creator, score: scoreCreator(creator) }))
+        .filter((creator) => creator.score >= minScore)
+        .filter((creator) => niche === "all" || creator.niche === niche)
+        .filter((creator) => region === "all" || creator.region === region)
+        .filter((creator) => format === "all" || creator.format === format)
+        .filter((creator) => {
+          if (!query) return true;
+          return `${creator.name} ${creator.handle} ${creator.niche} ${creator.subNiche} ${creator.region} ${creator.description}`.toLowerCase().includes(query);
+        });
+      rows.sort((a, b) => state.sort === "reach" ? b.followers - a.followers : b.score - a.score);
+      return rows;
+    }
+
+    function avatarMarkup(creator) {
+      if (creator.thumbnail) return `<img src="${creator.thumbnail}" alt="">`;
+      return creator.name.split(" ").slice(0, 2).map((part) => part[0]).join("");
+    }
+
+    function renderCreator(creator) {
+      const breakdown = scoreBreakdown(creator);
+      return `
+        <article class="card creator-card">
+          <div class="creator-head">
+            <div class="avatar">${avatarMarkup(creator)}</div>
+            <div class="creator-title">
+              <h3>${creator.name}</h3>
+              <a href="https://www.youtube.com/${creator.handle}" target="_blank" rel="noreferrer">${creator.handle}</a>
+            </div>
+            <div class="score-ring">${creator.score}</div>
+          </div>
+          <div class="chips">
+            <span class="chip accent">${creator.niche}</span>
+            <span class="chip">${creator.region}</span>
+            <span class="chip">${creator.format}</span>
+            <span class="chip">${creator.source}</span>
+          </div>
+          <p class="muted">${creator.description}</p>
+          <div class="metrics">
+            <div class="metric"><b>${compactNumber(creator.followers)}</b><span>subscribers</span></div>
+            <div class="metric"><b>${compactNumber(creator.views)}</b><span>views</span></div>
+            <div class="metric"><b>${creator.engagement}%</b><span>est. engagement</span></div>
+          </div>
+          <div class="mini-bars">
+            ${breakdown.map((item) => `
+              <div class="bar-row"><span>${item.label}</span><div class="bar"><span style="width: ${item.value}%"></span></div><strong>${item.value}</strong></div>
+            `).join("")}
+          </div>
+          <div class="reason">${matchReason(creator, creator.score)}</div>
+          <div class="card-actions">
+            <button class="button" data-save="${creator.id}">${state.saved.has(creator.id) ? "Saved" : "Save partner"}</button>
+            <button class="button secondary" data-outreach="${creator.id}">Draft outreach</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      const rows = getFilteredCreators();
+      el("creatorGrid").innerHTML = rows.length ? rows.map(renderCreator).join("") : `<div class="panel empty">No matches found. Try lowering the score threshold or changing niche filters.</div>`;
+      el("resultCount").textContent = `${rows.length} match${rows.length === 1 ? "" : "es"}`;
+      el("statCreators").textContent = state.creators.length;
+      const average = rows.length ? Math.round(rows.reduce((sum, creator) => sum + creator.score, 0) / rows.length) : 0;
+      el("statAvg").textContent = average;
+      el("statSaved").textContent = state.saved.size;
+      renderShortlist();
+      attachCardEvents();
+    }
+
+    function renderShortlist() {
+      const saved = state.creators.filter((creator) => state.saved.has(creator.id));
+      el("shortlist").innerHTML = saved.length
+        ? saved.map((creator) => `<div class="shortlist-item"><span>${creator.name}</span><button class="button secondary" data-remove="${creator.id}">Remove</button></div>`).join("")
+        : `<p class="hint">Save creators from the match feed to build a prospect list.</p>`;
+      document.querySelectorAll("[data-remove]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.saved.delete(button.dataset.remove);
+          render();
+        });
+      });
+    }
+
+    function attachCardEvents() {
+      document.querySelectorAll("[data-save]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.dataset.save;
+          if (state.saved.has(id)) state.saved.delete(id);
+          else state.saved.add(id);
+          render();
+        });
+      });
+      document.querySelectorAll("[data-outreach]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const creator = state.creators.find((item) => item.id === button.dataset.outreach);
+          if (!creator) return;
+          const message = `Hi ${creator.name}, I run ${el("profileName").value}. I think our audiences could enjoy a ${creator.format.toLowerCase()} around ${suggestedCollab(creator)}. Would you be open to exploring a collaboration next month?`;
+          navigator.clipboard?.writeText(message);
+          showStatus("apiStatus", "Outreach draft copied to clipboard.", "ok");
+        });
+      });
+    }
+
+    function showStatus(id, message, kind) {
+      const node = el(id);
+      node.textContent = message;
+      node.className = `api-status visible ${kind || ""}`;
+    }
+
+    async function fetchJsonWithTimeout(url, timeoutMs = 9000) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const detail = data.error?.message ? `: ${data.error.message}` : "";
+          throw new Error(`YouTube API returned ${response.status}${detail}`);
+        }
+        return data;
+      } catch (error) {
+        if (error.name === "AbortError") throw new Error("YouTube API request timed out");
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    function inferNiche(text) {
+      const haystack = text.toLowerCase();
+      const tests = [
+        ["Food", ["food", "restaurant", "recipe", "cooking", "meal", "chef", "kitchen"]],
+        ["Fitness", ["fitness", "workout", "gym", "nutrition", "health", "yoga"]],
+        ["Travel", ["travel", "hotel", "destination", "tour", "trip", "city"]],
+        ["Finance", ["money", "finance", "investing", "stock", "business", "wealth"]],
+        ["Tech", ["tech", "software", "gadget", "ai", "camera", "phone"]],
+        ["Beauty", ["beauty", "skincare", "makeup", "fashion", "style"]],
+        ["Education", ["learn", "study", "education", "career", "productivity"]]
+      ];
+      return (tests.find(([, words]) => words.some((word) => haystack.includes(word))) || ["Education"])[0];
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function hashText(text) {
+      return [...text].reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0);
+    }
+
+    function inferRegion(text) {
+      const haystack = text.toLowerCase();
+      if (/(dubai|uae|abu dhabi|sharjah|emirates)/.test(haystack)) return "UAE";
+      if (/(india|mumbai|delhi|bangalore|bengaluru|hyderabad|chennai)/.test(haystack)) return "India";
+      if (/(london|uk|britain|england)/.test(haystack)) return "UK";
+      if (/(usa|united states|new york|california|texas)/.test(haystack)) return "US";
+      return "Global";
+    }
+
+    function inferFormat(text, niche) {
+      const haystack = text.toLowerCase();
+      if (/(live|stream|ama|webinar)/.test(haystack)) return "Live stream";
+      if (/(series|episode|playlist|challenge)/.test(haystack)) return "Series collab";
+      if (/(interview|podcast|guest|deep dive)/.test(haystack)) return "Long-form guest";
+      if (/(giveaway|haul|shopping|beauty)/.test(haystack) || niche === "Beauty") return "Giveaway";
+      return "Shorts swap";
+    }
+
+    function topicsForNiche(text, niche) {
+      const haystack = text.toLowerCase();
+      const base = {
+        Food: ["shorts", "reviews", "cooking"],
+        Fitness: ["education", "shorts", "meal prep"],
+        Travel: ["shorts", "guides", "budget"],
+        Finance: ["education", "interviews", "templates"],
+        Tech: ["reviews", "tutorials", "gear"],
+        Beauty: ["shorts", "reviews", "lifestyle"],
+        Education: ["education", "productivity", "live"]
+      }[niche] || ["education", "shorts"];
+      const extras = [
+        ["ai", "ai"],
+        ["camera", "gear"],
+        ["restaurant", "reviews"],
+        ["recipe", "cooking"],
+        ["budget", "budget"],
+        ["family", "family"],
+        ["productivity", "productivity"],
+        ["interview", "interviews"],
+        ["shorts", "shorts"],
+        ["live", "live"]
+      ]
+        .filter(([word]) => haystack.includes(word))
+        .map(([, topic]) => topic);
+      return [...new Set([...base, ...extras])].slice(0, 5);
+    }
+
+    function cleanChannelName(input) {
+      const trimmed = input.trim() || "Urban Food Stories";
+      const withoutUrl = trimmed
+        .replace(/^https?:\/\/(www\.)?youtube\.com\//i, "")
+        .replace(/^https?:\/\/youtu\.be\//i, "")
+        .replace(/^(@|channel\/|c\/|user\/)/i, "");
+      return withoutUrl
+        .replace(/[/?#].*$/, "")
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+        .trim() || "YouTube Creator";
+    }
+
+    function profileFromPublicData(input, data) {
+      const snippet = data.snippet || {};
+      const stats = data.statistics || {};
+      const title = snippet.title || cleanChannelName(input);
+      const description = snippet.description || "";
+      const profileText = `${title} ${description} ${input}`;
+      const niche = inferNiche(profileText);
+      const followers = Number(stats.subscriberCount || 0);
+      const views = Number(stats.viewCount || 0);
+      const videos = Number(stats.videoCount || 0);
+      return {
+        name: title,
+        handle: snippet.customUrl || input,
+        niche,
+        audienceTier: audienceTier(followers || 160000),
+        region: inferRegion(profileText),
+        format: inferFormat(profileText, niche),
+        followers: followers || 160000,
+        views: views || 12000000,
+        videos: videos || 120,
+        topics: topicsForNiche(profileText, niche),
+        source: "YouTube Data API",
+        description: description || "Public YouTube metadata imported from the channel.",
+        confidence: followers ? "High" : "Medium"
+      };
+    }
+
+    function mockProfileFromInput(input) {
+      const name = cleanChannelName(input);
+      const text = `${name} ${input}`;
+      const niche = inferNiche(text);
+      const region = inferRegion(text);
+      const hash = Math.abs(hashText(text));
+      const followers = 42000 + (hash % 620000);
+      const views = followers * (35 + (hash % 90));
+      return {
+        name,
+        handle: input.trim().startsWith("@") ? input.trim() : `@${name.replace(/\s+/g, "")}`,
+        niche,
+        audienceTier: audienceTier(followers),
+        region,
+        format: inferFormat(text, niche),
+        followers,
+        views,
+        videos: 80 + (hash % 320),
+        topics: topicsForNiche(text, niche),
+        source: "Mock profiler",
+        description: "Estimated from the channel text because no API key was provided.",
+        confidence: "Demo"
+      };
+    }
+
+    function channelLookupParams(input) {
+      const value = input.trim();
+      const channelMatch = value.match(/(?:channel\/)?(UC[\w-]{20,})/i);
+      if (channelMatch) return { mode: "channels", params: { id: channelMatch[1] } };
+      const handleMatch = value.match(/@[\w.-]+/);
+      if (handleMatch) return { mode: "channels", params: { forHandle: handleMatch[0] } };
+      return { mode: "search", params: { q: value } };
+    }
+
+    async function fetchChannelProfile(key, input) {
+      const lookup = channelLookupParams(input);
+      let channelId = "";
+      if (lookup.mode === "channels") {
+        async function getChannel(params) {
+          const channelsUrl = new URL("https://www.googleapis.com/youtube/v3/channels");
+          channelsUrl.search = new URLSearchParams({
+            part: "snippet,statistics",
+            ...params,
+            key
+          });
+          const data = await fetchJsonWithTimeout(channelsUrl);
+          return (data.items || [])[0];
+        }
+        let item = null;
+        let lastError = null;
+        try {
+          item = await getChannel(lookup.params);
+        } catch (error) {
+          lastError = error;
+        }
+        if (!item && lookup.params.forHandle) {
+          const alternate = lookup.params.forHandle.startsWith("@")
+            ? lookup.params.forHandle.slice(1)
+            : `@${lookup.params.forHandle}`;
+          try {
+            item = await getChannel({ forHandle: alternate });
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        if (!item) throw new Error(lastError?.message || "No channel found for that URL, handle, or ID.");
+        return profileFromPublicData(input, item);
+      }
+
+      const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+      searchUrl.search = new URLSearchParams({
+        part: "snippet",
+        type: "channel",
+        maxResults: "1",
+        q: lookup.params.q,
+        key
+      });
+      const searchData = await fetchJsonWithTimeout(searchUrl);
+      channelId = searchData.items?.[0]?.snippet?.channelId || "";
+      if (!channelId) throw new Error("No matching YouTube channel found.");
+      return fetchChannelProfile(key, channelId);
+    }
+
+    function renderProfileSummary(profile) {
+      el("profileSummary").classList.add("visible");
+      el("profileSummary").innerHTML = `
+        <div class="row">
+          <span class="chip accent">${escapeHtml(profile.source)}</span>
+          <span class="chip">${escapeHtml(profile.confidence)} confidence</span>
+        </div>
+        <h3>${escapeHtml(profile.name)}</h3>
+        <p class="muted">${escapeHtml(profile.description)}</p>
+        <div class="metrics">
+          <div class="metric"><b>${compactNumber(profile.followers)}</b><span>subscribers</span></div>
+          <div class="metric"><b>${compactNumber(profile.views)}</b><span>views</span></div>
+          <div class="metric"><b>${compactNumber(profile.videos)}</b><span>videos</span></div>
+        </div>
+        <ul class="insight-list">
+          <li><strong>Detected niche:</strong> ${escapeHtml(profile.niche)} with ${escapeHtml(profile.topics.join(", "))} content signals.</li>
+          <li><strong>Audience tier:</strong> ${escapeHtml(profile.audienceTier)} creator, best matched with similar or one-tier-up channels.</li>
+          <li><strong>Recommendation strategy:</strong> prioritize ${escapeHtml(profile.region)} or Global creators who support ${escapeHtml(profile.format.toLowerCase())} formats.</li>
+        </ul>
+      `;
+    }
+
+    function applyProfile(profile) {
+      state.profile = profile;
+      el("profileName").value = profile.name;
+      el("profileNiche").value = profile.niche;
+      el("profileAudience").value = profile.audienceTier;
+      el("profileRegion").value = profile.region;
+      el("profileFormat").value = profile.format;
+      el("youtubeQuery").value = `${profile.region} ${profile.niche} creator`;
+      renderProfileSummary(profile);
+      render();
+    }
+
+    async function analyzeChannel() {
+      const input = el("channelInput").value.trim();
+      if (!input) {
+        showStatus("profileStatus", "Enter a YouTube channel URL, @handle, ID, or name first.", "error");
+        return;
+      }
+
+      const key = el("apiKey").value.trim();
+      el("analyzeChannel").disabled = true;
+      el("profileSummary").classList.remove("visible");
+      showStatus("profileStatus", key ? "Fetching public YouTube channel metadata..." : "Creating a demo profile from the channel text...", "");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      try {
+        const profile = key ? await fetchChannelProfile(key, input) : mockProfileFromInput(input);
+        applyProfile(profile);
+        showStatus("profileStatus", key ? "Channel profiled from public YouTube metadata." : "Demo channel profile generated. Add an API key for real public metadata.", "ok");
+      } catch (error) {
+        const fallback = mockProfileFromInput(input);
+        applyProfile(fallback);
+        showStatus("profileStatus", `${error.message} Used demo profiling instead.`, "error");
+      } finally {
+        el("analyzeChannel").disabled = false;
+      }
+    }
+
+    async function searchYouTube() {
+      const key = el("apiKey").value.trim();
+      const query = el("youtubeQuery").value.trim();
+      if (!key || !query) {
+        showStatus("apiStatus", "Add a YouTube API key and search query first.", "error");
+        return;
+      }
+      showStatus("apiStatus", "Searching YouTube channels...", "");
+      try {
+        const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+        searchUrl.search = new URLSearchParams({
+          part: "snippet",
+          type: "channel",
+          maxResults: "8",
+          q: query,
+          key
+        });
+        const searchResponse = await fetch(searchUrl);
+        if (!searchResponse.ok) throw new Error(`Search failed: ${searchResponse.status}`);
+        const searchData = await searchResponse.json();
+        const ids = (searchData.items || []).map((item) => item.snippet.channelId).filter(Boolean);
+        if (!ids.length) {
+          showStatus("apiStatus", "No channels found for that query.", "error");
+          return;
+        }
+        const channelsUrl = new URL("https://www.googleapis.com/youtube/v3/channels");
+        channelsUrl.search = new URLSearchParams({
+          part: "snippet,statistics",
+          id: ids.join(","),
+          key
+        });
+        const channelResponse = await fetch(channelsUrl);
+        if (!channelResponse.ok) throw new Error(`Channel lookup failed: ${channelResponse.status}`);
+        const channelData = await channelResponse.json();
+        const imported = (channelData.items || []).map((item) => {
+          const snippet = item.snippet || {};
+          const stats = item.statistics || {};
+          const followers = Number(stats.subscriberCount || 0);
+          const views = Number(stats.viewCount || 0);
+          const niche = inferNiche(`${snippet.title || ""} ${snippet.description || ""}`);
+          return {
+            id: item.id,
+            name: snippet.title || "YouTube creator",
+            handle: snippet.customUrl || item.id,
+            niche,
+            subNiche: "Imported from YouTube search",
+            region: "Global",
+            followers,
+            views,
+            engagement: followers ? Math.max(2.5, Math.min(7.5, (views / Math.max(followers, 1)) / 120)) : 3.5,
+            format: "Shorts swap",
+            style: ["youtube", "imported", "shorts"],
+            description: snippet.description || "No public description available.",
+            thumbnail: snippet.thumbnails?.default?.url || "",
+            source: "YouTube API"
+          };
+        });
+        state.creators = [...imported, ...seedCreators];
+        showStatus("apiStatus", `Imported ${imported.length} YouTube channel candidates.`, "ok");
+        render();
+      } catch (error) {
+        showStatus("apiStatus", error.message, "error");
+      }
+    }
+
+    [
+      "profileName",
+      "profileNiche",
+      "profileAudience",
+      "profileRegion",
+      "profileFormat",
+      "channelInput",
+      "nicheFilter",
+      "regionFilter",
+      "minScore",
+      "formatFilter",
+      "textSearch"
+    ].forEach((id) => {
+      el(id).addEventListener("input", render);
+      el(id).addEventListener("change", render);
+    });
+
+    el("sortScore").addEventListener("click", () => {
+      state.sort = "score";
+      render();
+    });
+
+    el("sortReach").addEventListener("click", () => {
+      state.sort = "reach";
+      render();
+    });
+
+    el("youtubeSearch").addEventListener("click", searchYouTube);
+    el("analyzeChannel").onclick = analyzeChannel;
+    el("channelInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") analyzeChannel();
+    });
+    el("useDemoProfile").addEventListener("click", () => {
+      el("channelInput").value = "@UrbanFoodStories";
+      applyProfile(mockProfileFromInput(el("channelInput").value));
+      showStatus("profileStatus", "Demo profile loaded and recommendations refreshed.", "ok");
+    });
+
+    el("resetMock").addEventListener("click", () => {
+      state.creators = [...seedCreators];
+      state.saved.clear();
+      showStatus("apiStatus", "Sample data restored.", "ok");
+      render();
+    });
+
+    el("scrollToMatches").addEventListener("click", () => {
+      el("matches").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    el("openBrief").addEventListener("click", () => {
+      el("briefModal").classList.add("open");
+    });
+
+    el("closeBrief").addEventListener("click", () => {
+      el("briefModal").classList.remove("open");
+    });
+
+    el("briefModal").addEventListener("click", (event) => {
+      if (event.target.id === "briefModal") el("briefModal").classList.remove("open");
+    });
+
+    applyProfile(mockProfileFromInput(el("channelInput").value));
+  </script>
+</body>
+</html>

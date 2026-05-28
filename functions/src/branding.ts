@@ -1,0 +1,32 @@
+// GENERATED FILE — do not edit by hand.
+// Source: packages/branding/branding.config.json
+// Regenerate via: npm run branding
+
+export const branding = {
+  "$schema": "./packages/branding/branding.schema.json",
+  "name": "Tandem",
+  "shortName": "Tandem",
+  "tagline": "Find your next collab.",
+  "description": "Tandem analyses any creator channel and recommends the right collaborators across YouTube, Instagram, and TikTok.",
+  "domain": "tandem.app",
+  "marketingUrl": "https://tandem.app",
+  "appUrl": "https://app.tandem.app",
+  "supportEmail": "hello@tandem.app",
+  "bundleIdPrefix": "app.tandem",
+  "androidApplicationId": "app.tandem.client",
+  "iosBundleId": "app.tandem.client",
+  "colors": {
+    "accentLight": "#b11f4b",
+    "accentLightHover": "#9a1a41",
+    "accentDark": "#fd8ea1",
+    "accentDarkHover": "#fb7b91",
+    "bgLight": "#f7f4ef",
+    "bgDark": "#3d3b3a"
+  },
+  "social": {
+    "twitter": "@tandemapp",
+    "linkedin": "tandem"
+  }
+} as const;
+
+export type Branding = typeof branding;

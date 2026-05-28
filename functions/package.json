@@ -1,0 +1,37 @@
+{
+  "name": "functions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tandem Cloud Functions (gen2, TypeScript). Houses all secrets and AI/YouTube/IG/TikTok API access.",
+  "type": "module",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "prebuild": "node bundle-shared-types.cjs",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "@tandem/shared-types": "file:./shared-types",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.17.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BrandingConfig",
+  "type": "object",
+  "required": [
+    "name",
+    "shortName",
+    "tagline",
+    "domain",
+    "bundleIdPrefix",
+    "androidApplicationId",
+    "iosBundleId",
+    "colors"
+  ],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 30 },
+    "shortName": { "type": "string", "minLength": 1, "maxLength": 12 },
+    "tagline": { "type": "string", "maxLength": 80 },
+    "description": { "type": "string", "maxLength": 200 },
+    "domain": { "type": "string" },
+    "marketingUrl": { "type": "string", "format": "uri" },
+    "appUrl": { "type": "string", "format": "uri" },
+    "supportEmail": { "type": "string", "format": "email" },
+    "bundleIdPrefix": { "type": "string", "pattern": "^[a-z][a-z0-9.]*[a-z0-9]$" },
+    "androidApplicationId": { "type": "string", "pattern": "^[a-z][a-z0-9.]*[a-z0-9]$" },
+    "iosBundleId": { "type": "string", "pattern": "^[a-z][a-z0-9.]*[a-z0-9]$" },
+    "colors": {
+      "type": "object",
+      "required": ["accentLight", "accentDark", "bgLight", "bgDark"],
+      "properties": {
+        "accentLight": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accentLightHover": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accentDark": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accentDarkHover": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "bgLight": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "bgDark": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      }
+    },
+    "social": {
+      "type": "object",
+      "properties": {
+        "twitter": { "type": "string" },
+        "linkedin": { "type": "string" }
+      }
+    }
+  }
+}

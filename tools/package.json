@@ -1,0 +1,16 @@
+{
+  "name": "@tandem/tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "branding": "tsx apply-branding.ts"
+  },
+  "dependencies": {
+    "@tandem/branding": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

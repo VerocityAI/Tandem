@@ -1,0 +1,9 @@
+{
+  "name": "@tandem/branding",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Single source of truth for app name, bundle ids, colors, and copy.",
+  "main": "branding.config.json",
+  "types": "index.d.ts",
+  "files": ["branding.config.json", "branding.schema.json", "index.d.ts"]
+}

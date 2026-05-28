@@ -1,0 +1,64 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "What to deploy"
+        required: true
+        type: choice
+        options: [marketing, app, backend, all]
+      environment:
+        description: "Firebase project alias"
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run branding
+
+      - if: ${{ inputs.target == 'marketing' || inputs.target == 'all' }}
+        run: npm --workspace apps/marketing run build
+
+      - if: ${{ inputs.target == 'app' || inputs.target == 'all' }}
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - if: ${{ inputs.target == 'app' || inputs.target == 'all' }}
+        working-directory: apps/mobile
+        env:
+          RECAPTCHA_SITE_KEY: ${{ secrets.RECAPTCHA_SITE_KEY }}
+        run: |
+          flutter create . --platforms=web --org app.tandem --project-name tandem
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          flutter build web --release --dart-define=RECAPTCHA_SITE_KEY=$RECAPTCHA_SITE_KEY
+
+      - if: ${{ inputs.target == 'backend' || inputs.target == 'all' }}
+        run: npm --workspace functions run build
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy
+        run: |
+          npm i -g firebase-tools
+          firebase use ${{ inputs.environment }}
+          case "${{ inputs.target }}" in
+            marketing) firebase deploy --only hosting:marketing --non-interactive ;;
+            app)       firebase deploy --only hosting:app --non-interactive ;;
+            backend)   firebase deploy --only functions,firestore:rules,firestore:indexes,storage --non-interactive ;;
+            all)       firebase deploy --non-interactive ;;
+          esac

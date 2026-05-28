@@ -1,0 +1,19 @@
+---
+import Base from "~/layouts/Base.astro";
+import { site } from "~/site.config";
+---
+<Base title="Privacy Policy">
+  <article class="prose max-w-3xl mx-auto px-6 py-16">
+    <h1>Privacy Policy</h1>
+    <p><em>Last updated: TBD.</em></p>
+    <p>{site.name} only accesses public data from social platforms. We never request your account password.</p>
+    <h2>Data we store</h2>
+    <ul>
+      <li>Your Google sign-in identity (display name, email, photo URL).</li>
+      <li>The list of channels you've connected to your account.</li>
+      <li>Your shortlists and outreach drafts.</li>
+    </ul>
+    <h2>Account deletion</h2>
+    <p>Open Settings → Delete account. This removes all data above. Contact <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> with any questions.</p>
+  </article>
+</Base>

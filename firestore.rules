@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // --- per-user data ---
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /connectedChannels/{channelKey} {
+        allow read, write: if isOwner(uid);
+      }
+      match /shortlist/{entryId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /outreach/{outreachId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /usage/{day} {
+        // Quotas are written by Cloud Functions only.
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // --- shared channel cache (read-only for clients) ---
+    match /channels/{channelKey} {
+      allow read: if isSignedIn();
+      allow write: if false; // Cloud Functions only
+      match /analyses/{analysisId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+    }
+
+    // --- AI cache: server-only ---
+    match /aiCache/{doc=**} {
+      allow read, write: if false;
+    }
+  }
+}

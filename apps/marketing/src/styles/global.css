@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { font-family: theme("fontFamily.sans"); }
+  body { @apply bg-[color:var(--bg)] text-neutral-900 dark:bg-bg-dark dark:text-neutral-100; }
+  :root { --bg: theme("colors.bg"); }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: theme("colors.bg-dark"); }
+  }
+}

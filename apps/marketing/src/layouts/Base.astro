@@ -1,0 +1,49 @@
+---
+import "~/styles/global.css";
+import { site } from "~/site.config";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = site.name, description = site.description } = Astro.props;
+const fullTitle = title === site.name ? `${site.name} — ${site.tagline}` : `${title} · ${site.name}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={site.marketingUrl} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href={site.marketingUrl} />
+  </head>
+  <body>
+    <header class="px-6 py-5 max-w-6xl mx-auto flex items-center justify-between">
+      <a href="/" class="font-semibold text-lg">{site.name}</a>
+      <nav class="flex items-center gap-6 text-sm">
+        <a href="/#how" class="hover:text-accent">How it works</a>
+        <a href="/#scoring" class="hover:text-accent">Scoring</a>
+        <a href="/blog" class="hover:text-accent">Blog</a>
+        <a href={site.appUrl} class="rounded-md bg-accent text-white px-4 py-2 hover:bg-accent-hover">Open app</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="px-6 py-12 max-w-6xl mx-auto text-sm text-neutral-500 flex flex-wrap gap-4 justify-between border-t mt-16">
+      <span>&copy; {new Date().getFullYear()} {site.name}</span>
+      <div class="flex gap-4">
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href={`mailto:${site.supportEmail}`}>Contact</a>
+      </div>
+    </footer>
+  </body>
+</html>
