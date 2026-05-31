@@ -48,6 +48,9 @@ firestore-debug.log
 ui-debug.log
 .firebase/
 
+# Local test auth tokens (Playwright recorded OAuth sessions)
+tools/testing/.auth/
+
 # IDE
 .idea/
 .vscode/launch.json

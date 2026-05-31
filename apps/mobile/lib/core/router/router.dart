@@ -3,13 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/sign_in_screen.dart';
-import '../../features/connect/connect_screen.dart';
-import '../../features/matches/matches_screen.dart';
-import '../../features/outreach/outreach_screen.dart';
-import '../../features/profile/profile_screen.dart';
-import '../../features/settings/settings_screen.dart';
-import '../../features/shortlist/shortlist_screen.dart';
+import 'package:tandem/features/auth/sign_in_screen.dart';
+import 'package:tandem/features/connect/connect_screen.dart';
+import 'package:tandem/features/matches/matches_screen.dart';
+import 'package:tandem/features/outreach/outreach_screen.dart';
+import 'package:tandem/features/profile/profile_screen.dart';
+import 'package:tandem/features/settings/settings_screen.dart';
+import 'package:tandem/features/shortlist/shortlist_screen.dart';
 
 final authStateProvider = StreamProvider<User?>(
   (ref) => FirebaseAuth.instance.authStateChanges(),

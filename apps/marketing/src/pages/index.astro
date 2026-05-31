@@ -3,42 +3,87 @@ import Base from "~/layouts/Base.astro";
 import { site } from "~/site.config";
 ---
 <Base>
-  <section class="px-6 py-20 max-w-6xl mx-auto">
-    <p class="text-accent uppercase tracking-wide text-sm font-medium">For creators</p>
-    <h1 class="text-5xl font-semibold mt-3 max-w-3xl leading-tight">
-      {site.tagline}
-    </h1>
-    <p class="mt-6 text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl">
-      {site.name} analyses any public creator channel and recommends partners who will actually move the needle —
-      across YouTube, Instagram, and TikTok.
-    </p>
-    <div class="mt-8 flex gap-3">
-      <a href={site.appUrl} class="rounded-md bg-accent text-white px-6 py-3 font-medium hover:bg-accent-hover">
-        Open the app
-      </a>
-      <a href="#how" class="rounded-md border px-6 py-3 font-medium hover:border-accent">
-        How it works
-      </a>
+  <section class="hero-wrap px-6 pt-16 pb-12 max-w-6xl mx-auto">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-shell">
+      <p class="kicker reveal">MVP for Creator Growth Teams</p>
+      <h1 class="hero-title reveal reveal-2">
+        Stop guess-collabs.
+        <span class="accent-gradient">Start partner pipelines.</span>
+      </h1>
+      <p class="hero-copy reveal reveal-3">
+        {site.name} analyses any public creator channel and surfaces the highest-fit collaborators with transparent scoring,
+        AI rationale, and ready-to-send outreach hooks.
+      </p>
+      <div class="hero-cta reveal reveal-4">
+        <a href={site.appUrl} class="btn-primary">
+          Launch Discovery
+        </a>
+        <a href="#how" class="btn-secondary">
+          See the Workflow
+        </a>
+      </div>
+      <div class="proof-grid reveal reveal-5">
+        <article class="proof-card">
+          <p class="proof-label">Avg setup time</p>
+          <p class="proof-value">&lt; 90 sec</p>
+        </article>
+        <article class="proof-card">
+          <p class="proof-label">Channels analysed</p>
+          <p class="proof-value">YouTube + IG + TikTok</p>
+        </article>
+        <article class="proof-card">
+          <p class="proof-label">Decision support</p>
+          <p class="proof-value">Rule score + AI rationale</p>
+        </article>
+      </div>
     </div>
   </section>
 
-  <section id="how" class="px-6 py-16 max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
-    <div>
-      <h3 class="font-semibold text-lg">1. Connect a channel</h3>
-      <p class="mt-2 text-neutral-600 dark:text-neutral-300">Paste any YouTube, Instagram, or TikTok URL or handle. We never need your password.</p>
+  <section id="how" class="px-6 py-14 max-w-6xl mx-auto">
+    <div class="section-head">
+      <p class="kicker">How it works</p>
+      <h2>From channel URL to actionable collaborator shortlist.</h2>
     </div>
-    <div>
-      <h3 class="font-semibold text-lg">2. AI analyses content</h3>
-      <p class="mt-2 text-neutral-600 dark:text-neutral-300">We profile niche, audience persona, content pillars, and brand-safety signals from public data.</p>
-    </div>
-    <div>
-      <h3 class="font-semibold text-lg">3. Get matched collaborators</h3>
-      <p class="mt-2 text-neutral-600 dark:text-neutral-300">An explainable fit score plus AI rationale — save your favourites and draft outreach in one click.</p>
+    <div class="feature-grid mt-8">
+      <article class="feature-card reveal">
+        <p class="feature-step">Step 01</p>
+        <h3>Connect a channel</h3>
+        <p>Paste a public handle or URL. No password, no OAuth scope sprawl.</p>
+      </article>
+      <article class="feature-card reveal reveal-2">
+        <p class="feature-step">Step 02</p>
+        <h3>Profile content DNA</h3>
+        <p>We map niche, audience tier, format, tone, and content pillars from public signals.</p>
+      </article>
+      <article class="feature-card reveal reveal-3">
+        <p class="feature-step">Step 03</p>
+        <h3>Rank collab candidates</h3>
+        <p>Explainable fit score + AI reasoning helps you choose partners faster and safer.</p>
+      </article>
     </div>
   </section>
 
-  <section id="scoring" class="px-6 py-16 max-w-6xl mx-auto">
-    <h2 class="text-3xl font-semibold">An explainable fit score</h2>
-    <p class="mt-3 text-neutral-600 dark:text-neutral-300 max-w-2xl">Every recommendation comes with a transparent breakdown across niche, audience, engagement, region, format, content style, and platform compatibility — so you trust the picks.</p>
+  <section id="scoring" class="px-6 py-12 max-w-6xl mx-auto">
+    <div class="score-shell reveal">
+      <div>
+        <p class="kicker">Transparent Scoring</p>
+        <h2>Confidence without black-box guesswork.</h2>
+        <p class="score-copy">
+          Every recommendation includes weighted factors across niche overlap, audience compatibility, engagement health,
+          region fit, and format alignment.
+        </p>
+      </div>
+      <div class="score-bars" aria-label="Example score composition">
+        <div class="score-row"><span>Niche + audience</span><strong>34%</strong></div>
+        <div class="score-track"><i style="width: 34%"></i></div>
+        <div class="score-row"><span>Engagement quality</span><strong>24%</strong></div>
+        <div class="score-track"><i style="width: 24%"></i></div>
+        <div class="score-row"><span>Region + format</span><strong>22%</strong></div>
+        <div class="score-track"><i style="width: 22%"></i></div>
+        <div class="score-row"><span>Topic overlap</span><strong>20%</strong></div>
+        <div class="score-track"><i style="width: 20%"></i></div>
+      </div>
+    </div>
   </section>
 </Base>

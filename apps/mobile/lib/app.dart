@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/branding/branding.g.dart';
-import 'core/router/router.dart';
-import 'core/theme/app_theme.dart';
+import 'package:tandem/core/branding/branding.g.dart';
+import 'package:tandem/core/router/router.dart';
+import 'package:tandem/core/theme/app_theme.dart';
 
 class TandemApp extends ConsumerWidget {
   const TandemApp({super.key});

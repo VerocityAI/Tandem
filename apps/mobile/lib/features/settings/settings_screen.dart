@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api.dart';
+import 'package:tandem/core/api/api.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -47,7 +47,7 @@ class SettingsScreen extends ConsumerWidget {
                   ],
                 ),
               );
-              if (ok == true) {
+              if (ok ?? false) {
                 await ref.read(apiProvider).deleteAccount();
               }
             },

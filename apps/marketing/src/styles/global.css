@@ -1,12 +1,283 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html { font-family: theme("fontFamily.sans"); }
-  body { @apply bg-[color:var(--bg)] text-neutral-900 dark:bg-bg-dark dark:text-neutral-100; }
-  :root { --bg: theme("colors.bg"); }
+  html {
+    font-family: "Space Grotesk", theme("fontFamily.sans");
+  }
+
+  body {
+    @apply text-neutral-900 dark:text-neutral-100;
+    background:
+      radial-gradient(1300px 600px at 12% 0%, color-mix(in srgb, theme("colors.accent") 18%, transparent), transparent 50%),
+      radial-gradient(900px 500px at 92% 10%, color-mix(in srgb, theme("colors.accent") 12%, transparent), transparent 45%),
+      var(--bg);
+  }
+
+  :root {
+    --bg: theme("colors.bg");
+  }
+
   @media (prefers-color-scheme: dark) {
     :root { --bg: theme("colors.bg-dark"); }
+  }
+}
+
+.hero-wrap {
+  position: relative;
+}
+
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 1.5rem;
+  background: linear-gradient(140deg, color-mix(in srgb, theme("colors.accent") 16%, transparent), transparent 70%);
+  filter: blur(28px);
+  transform: translateY(10px);
+}
+
+.hero-shell {
+  position: relative;
+  border: 1px solid color-mix(in srgb, theme("colors.accent") 20%, #ffffff);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.74));
+  backdrop-filter: blur(8px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero-shell {
+    background: linear-gradient(165deg, rgba(32, 32, 32, 0.86), rgba(24, 24, 24, 0.8));
+    border-color: color-mix(in srgb, theme("colors.accent-dark") 25%, #2f2f2f);
+  }
+}
+
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+  font-size: 0.73rem;
+  color: theme("colors.accent");
+}
+
+.hero-title {
+  margin-top: 0.85rem;
+  max-width: 18ch;
+  font-family: "Sora", theme("fontFamily.sans");
+  font-size: clamp(2rem, 6vw, 4.1rem);
+  line-height: 1.04;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.accent-gradient {
+  display: block;
+  background: linear-gradient(90deg, theme("colors.accent"), color-mix(in srgb, theme("colors.accent") 60%, #ff7a00));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-copy {
+  margin-top: 1.1rem;
+  max-width: 62ch;
+  font-size: 1.03rem;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+}
+
+.hero-cta {
+  margin-top: 1.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.85rem;
+  padding: 0.78rem 1.2rem;
+  font-weight: 600;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.btn-primary {
+  background: theme("colors.accent");
+  color: #fff;
+  box-shadow: 0 10px 24px color-mix(in srgb, theme("colors.accent") 30%, transparent);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px color-mix(in srgb, theme("colors.accent") 35%, transparent);
+}
+
+.btn-secondary {
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, theme("colors.accent") 38%, transparent);
+}
+
+.proof-grid {
+  margin-top: 1.35rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem;
+}
+
+.proof-card {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 0.95rem;
+  padding: 0.9rem;
+  background: color-mix(in srgb, #ffffff 84%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .proof-card {
+    background: color-mix(in srgb, #191919 84%, transparent);
+  }
+}
+
+.proof-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.72;
+}
+
+.proof-value {
+  margin-top: 0.42rem;
+  font-weight: 600;
+}
+
+.section-head h2 {
+  margin-top: 0.45rem;
+  max-width: 26ch;
+  font-family: "Sora", theme("fontFamily.sans");
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  line-height: 1.14;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.feature-card {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: color-mix(in srgb, #ffffff 84%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .feature-card {
+    background: color-mix(in srgb, #181818 86%, transparent);
+  }
+}
+
+.feature-step {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: theme("colors.accent");
+  margin-bottom: 0.55rem;
+}
+
+.feature-card h3 {
+  font-size: 1.06rem;
+  font-weight: 650;
+}
+
+.feature-card p {
+  margin-top: 0.6rem;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.score-shell {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: color-mix(in srgb, #ffffff 80%, transparent);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1.25fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .score-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .score-shell {
+    background: color-mix(in srgb, #171717 84%, transparent);
+  }
+}
+
+.score-shell h2 {
+  margin-top: 0.45rem;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  line-height: 1.2;
+}
+
+.score-copy {
+  margin-top: 0.65rem;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.score-row {
+  margin-top: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.score-row strong {
+  font-family: "Sora", theme("fontFamily.sans");
+}
+
+.score-track {
+  margin-top: 0.36rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  overflow: hidden;
+}
+
+.score-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, theme("colors.accent"), color-mix(in srgb, theme("colors.accent") 58%, #ff7a00));
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: rise 600ms ease forwards;
+}
+
+.reveal-2 { animation-delay: 90ms; }
+.reveal-3 { animation-delay: 160ms; }
+.reveal-4 { animation-delay: 230ms; }
+.reveal-5 { animation-delay: 300ms; }
+
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

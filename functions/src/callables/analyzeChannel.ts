@@ -93,7 +93,7 @@ export const analyzeChannel = onCall(
       brandSafetyNotes: aiProfile?.brandSafetyNotes,
       idealCollaboratorProfile: aiProfile?.idealCollaboratorProfile,
       redFlags: aiProfile?.redFlags,
-      confidence: aiProfile?.confidence ?? baseProfile.confidence,
+      confidence: aiProfile ? (aiProfile.confidence ?? baseProfile.confidence) : "Low",
       sourceSnapshotAt: new Date().toISOString(),
     };
 

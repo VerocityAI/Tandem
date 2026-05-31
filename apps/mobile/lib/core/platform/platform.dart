@@ -20,6 +20,13 @@ extension PlatformX on Platform {
 }
 
 class ChannelRef {
+
+  factory ChannelRef.fromMap(Map<String, dynamic> m) => ChannelRef(
+    platform: PlatformX.fromId(m['platform'] as String),
+    externalId: m['externalId'] as String,
+    handle: m['handle'] as String,
+    url: m['url'] as String,
+  );
   const ChannelRef({
     required this.platform,
     required this.externalId,
@@ -32,11 +39,4 @@ class ChannelRef {
   final String url;
 
   String get channelKey => '${platform.id}_$externalId';
-
-  factory ChannelRef.fromMap(Map<String, dynamic> m) => ChannelRef(
-    platform: PlatformX.fromId(m['platform'] as String),
-    externalId: m['externalId'] as String,
-    handle: m['handle'] as String,
-    url: m['url'] as String,
-  );
 }

@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:tandem/core/api/api.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({required this.channelKey, super.key});
@@ -34,14 +37,68 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _ProfileView extends StatelessWidget {
+class _ProfileView extends ConsumerStatefulWidget {
   const _ProfileView({required this.channelKey, required this.data});
   final String channelKey;
   final Map<String, dynamic> data;
 
   @override
+  ConsumerState<_ProfileView> createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends ConsumerState<_ProfileView> {
+  bool _reprofiling = false;
+
+  Future<void> _reprofile() async {
+    final channelRef = widget.data['ref'];
+    if (channelRef is! Map) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset & re-profile?'),
+        content: const Text(
+          'This clears the current AI analysis for this channel and re-runs it '
+          'from scratch using the latest data. It may take a moment.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Re-profile'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _reprofiling = true);
+    try {
+      await ref
+          .read(apiProvider)
+          .analyzeChannel(Map<String, dynamic>.from(channelRef));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Channel re-profiled.')),
+        );
+      }
+    } on Object catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Re-profile failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _reprofiling = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final channelKey = widget.channelKey;
+    final data = widget.data;
     final name = data['name'] as String? ?? channelKey;
     final description = data['description'] as String? ?? '';
     final followers = data['followers'] as num? ?? 0;
@@ -62,11 +119,25 @@ class _ProfileView extends StatelessWidget {
     final redFlags = _toStringList(data['redFlags']);
     final ref = data['ref'] as Map<String, dynamic>?;
     final platform = ref?['platform'] as String? ?? 'youtube';
+    final lastProfiled = _formatTimestamp(
+      (data['sourceSnapshotAt'] ?? data['updatedAt']) as String?,
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(name),
         actions: [
+          IconButton(
+            icon: _reprofiling
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            tooltip: 'Reset & re-profile',
+            onPressed: _reprofiling ? null : _reprofile,
+          ),
           IconButton(
             icon: const Icon(Icons.group_add),
             tooltip: 'Find collaborators',
@@ -104,7 +175,7 @@ class _ProfileView extends StatelessWidget {
                       description,
                       style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.7)),
+                              .withValues(alpha: 0.7),),
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -120,17 +191,17 @@ class _ProfileView extends StatelessWidget {
             children: [
               Expanded(
                   child: _StatCard(
-                      label: 'Subscribers', value: _formatNumber(followers))),
+                      label: 'Subscribers', value: _formatNumber(followers),),),
               const SizedBox(width: 8),
               if (views != null)
                 Expanded(
                     child:
-                        _StatCard(label: 'Views', value: _formatNumber(views))),
+                        _StatCard(label: 'Views', value: _formatNumber(views)),),
               if (views != null) const SizedBox(width: 8),
               if (posts != null)
                 Expanded(
                     child: _StatCard(
-                        label: 'Videos', value: _formatNumber(posts))),
+                        label: 'Videos', value: _formatNumber(posts),),),
               if (engagementPct != null) ...[
                 const SizedBox(width: 8),
                 Expanded(
@@ -153,13 +224,15 @@ class _ProfileView extends StatelessWidget {
                 children: [
                   Text('Classification',
                       style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                          ?.copyWith(fontWeight: FontWeight.bold),),
                   const SizedBox(height: 12),
                   _InfoRow(
                       label: 'Niche',
-                      value: subNiche != null ? '$niche → $subNiche' : niche),
+                      value: subNiche != null ? '$niche → $subNiche' : niche,),
                   _InfoRow(label: 'Format', value: format),
                   _InfoRow(label: 'Region', value: region),
+                  if (lastProfiled != null)
+                    _InfoRow(label: 'Last profiled', value: lastProfiled),
                 ],
               ),
             ),
@@ -171,7 +244,7 @@ class _ProfileView extends StatelessWidget {
             _ChipSection(
                 title: 'Topics',
                 items: topics,
-                color: theme.colorScheme.primary),
+                color: theme.colorScheme.primary,),
 
           // Tone tags
           if (toneTags.isNotEmpty)
@@ -182,7 +255,7 @@ class _ProfileView extends StatelessWidget {
             _ChipSection(
                 title: 'Content Pillars',
                 items: contentPillars,
-                color: Colors.deepPurple),
+                color: Colors.deepPurple,),
 
           // AI insights
           if (audiencePersona != null ||
@@ -197,27 +270,27 @@ class _ProfileView extends StatelessWidget {
                   children: [
                     Text('AI Insights',
                         style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                            ?.copyWith(fontWeight: FontWeight.bold),),
                     if (audiencePersona != null) ...[
                       const SizedBox(height: 12),
                       _InsightBlock(
                           icon: Icons.people,
                           title: 'Audience Persona',
-                          text: audiencePersona),
+                          text: audiencePersona,),
                     ],
                     if (idealCollaborator != null) ...[
                       const SizedBox(height: 12),
                       _InsightBlock(
                           icon: Icons.handshake,
                           title: 'Ideal Collaborator',
-                          text: idealCollaborator),
+                          text: idealCollaborator,),
                     ],
                     if (brandSafetyNotes != null) ...[
                       const SizedBox(height: 12),
                       _InsightBlock(
                           icon: Icons.shield,
                           title: 'Brand Safety',
-                          text: brandSafetyNotes),
+                          text: brandSafetyNotes,),
                     ],
                   ],
                 ),
@@ -238,12 +311,12 @@ class _ProfileView extends StatelessWidget {
                     Row(
                       children: [
                         Icon(Icons.warning_amber,
-                            color: theme.colorScheme.error, size: 20),
+                            color: theme.colorScheme.error, size: 20,),
                         const SizedBox(width: 8),
                         Text('Red Flags',
                             style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.error)),
+                                color: theme.colorScheme.error,),),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -254,11 +327,11 @@ class _ProfileView extends StatelessWidget {
                             children: [
                               Text('• ',
                                   style: TextStyle(
-                                      color: theme.colorScheme.error)),
+                                      color: theme.colorScheme.error,),),
                               Expanded(child: Text(f)),
                             ],
                           ),
-                        )),
+                        ),),
                   ],
                 ),
               ),
@@ -282,6 +355,21 @@ class _ProfileView extends StatelessWidget {
   static List<String> _toStringList(dynamic value) {
     if (value is List) return value.map((e) => e.toString()).toList();
     return [];
+  }
+
+  static String? _formatTimestamp(String? iso) {
+    if (iso == null || iso.isEmpty) return null;
+    final parsed = DateTime.tryParse(iso);
+    if (parsed == null) return null;
+    final diff = DateTime.now().difference(parsed.toLocal());
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 30) return '${diff.inDays}d ago';
+    final local = parsed.toLocal();
+    final mm = local.month.toString().padLeft(2, '0');
+    final dd = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$mm-$dd';
   }
 
   static String _formatNumber(num value) {
@@ -320,11 +408,11 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(value,
                 style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+                    ?.copyWith(fontWeight: FontWeight.bold),),
             const SizedBox(height: 4),
             Text(label,
                 style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),),),
           ],
         ),
       ),
@@ -350,7 +438,7 @@ class _InfoRow extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withValues(alpha: 0.6))),
+                        .withValues(alpha: 0.6),),),
           ),
           Expanded(
             child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
@@ -367,9 +455,10 @@ class _ConfidenceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon) = switch (confidence) {
+    final (color, icon) = switch (confidence.toLowerCase()) {
       'high' => (Colors.green, Icons.verified),
       'medium' => (Colors.orange, Icons.check_circle_outline),
+      'demo' => (Colors.blue, Icons.science_outlined),
       _ => (Colors.grey, Icons.help_outline),
     };
     return Chip(
@@ -382,7 +471,7 @@ class _ConfidenceBadge extends StatelessWidget {
 
 class _ChipSection extends StatelessWidget {
   const _ChipSection(
-      {required this.title, required this.items, required this.color});
+      {required this.title, required this.items, required this.color,});
   final String title;
   final List<String> items;
   final Color color;
@@ -405,7 +494,7 @@ class _ChipSection extends StatelessWidget {
                       backgroundColor: color.withValues(alpha: 0.1),
                       side: BorderSide(color: color.withValues(alpha: 0.3)),
                       visualDensity: VisualDensity.compact,
-                    ))
+                    ),)
                 .toList(),
           ),
         ],
@@ -416,7 +505,7 @@ class _ChipSection extends StatelessWidget {
 
 class _InsightBlock extends StatelessWidget {
   const _InsightBlock(
-      {required this.icon, required this.title, required this.text});
+      {required this.icon, required this.title, required this.text,});
   final IconData icon;
   final String title;
   final String text;
@@ -435,7 +524,7 @@ class _InsightBlock extends StatelessWidget {
             children: [
               Text(title,
                   style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
+                      ?.copyWith(fontWeight: FontWeight.w600),),
               const SizedBox(height: 4),
               Text(text, style: theme.textTheme.bodySmall),
             ],

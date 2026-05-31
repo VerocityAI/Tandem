@@ -32,6 +32,9 @@ function parseYouTubeInput(text: string): ChannelRef | null {
   const value = text.trim();
   if (!value) return null;
 
+  // Don't claim URLs that clearly belong to other platforms.
+  if (/(?:tiktok\.com|instagram\.com)/i.test(value)) return null;
+
   // Direct UC channel id
   const idMatch = value.match(/(?:^|\/)(UC[\w-]{20,})(?:[/?#]|$)/);
   if (idMatch && idMatch[1]) {
