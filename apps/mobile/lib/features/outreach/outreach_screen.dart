@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:tandem/core/api/api.dart';
+import 'package:tandem/core/data/collections.dart';
 import 'package:tandem/core/widgets/score_ring.dart';
 
 class OutreachScreen extends ConsumerStatefulWidget {
@@ -17,11 +20,13 @@ class OutreachScreen extends ConsumerStatefulWidget {
 
 class _OutreachScreenState extends ConsumerState<OutreachScreen> {
   final _angleController = TextEditingController();
+  final _emailController = TextEditingController();
   Map<String, dynamic>? _from;
   Map<String, dynamic>? _to;
   Map<String, dynamic>? _draft;
   bool _loading = true;
   bool _generating = false;
+  bool _contacted = false;
   String? _error;
 
   @override
@@ -33,6 +38,7 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
   @override
   void dispose() {
     _angleController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -82,6 +88,92 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$label copied')),
     );
+  }
+
+  /// The creator's YouTube channel URL (About tab lists their business contact).
+  Uri? _channelAboutUrl() {
+    final ref = _to?['ref'] as Map<String, dynamic>?;
+    final handle = ref?['handle'] as String?;
+    final externalId = ref?['externalId'] as String?;
+    if (handle != null && handle.startsWith('@')) {
+      return Uri.parse('https://www.youtube.com/$handle/about');
+    }
+    if (externalId != null && externalId.startsWith('UC')) {
+      return Uri.parse('https://www.youtube.com/channel/$externalId/about');
+    }
+    final url = _to?['ref']?['url'] as String?;
+    return url != null ? Uri.tryParse(url) : null;
+  }
+
+  Future<void> _openChannel() async {
+    final url = _channelAboutUrl();
+    if (url == null) {
+      _snack('Channel link unavailable');
+      return;
+    }
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      _snack('Could not open the channel');
+    }
+  }
+
+  String _fullMessage() {
+    final d = _draft ?? {};
+    final subject = d['subject'] as String? ?? '';
+    final message = d['message'] as String? ?? '';
+    final cta = d['callToAction'] as String?;
+    return [
+      if (subject.isNotEmpty) 'Subject: $subject',
+      message,
+      if (cta != null && cta.isNotEmpty) cta,
+    ].join('\n\n');
+  }
+
+  Future<void> _shareMessage() async {
+    await Share.share(_fullMessage(),
+        subject: _draft?['subject'] as String? ?? 'Collaboration');
+  }
+
+  Future<void> _emailNow() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _snack('Enter their email first');
+      return;
+    }
+    final subject = _draft?['subject'] as String? ?? 'Collaboration';
+    final uri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: 'subject=${Uri.encodeComponent(subject)}'
+          '&body=${Uri.encodeComponent(_draft?['message'] as String? ?? '')}',
+    );
+    if (!await launchUrl(uri)) {
+      _snack('No email app available');
+      return;
+    }
+    await _markContacted(silent: true);
+  }
+
+  /// Save the recipient to the shortlist and mark them as "contacted" (CRM).
+  Future<void> _markContacted({bool silent = false}) async {
+    final repo = ref.read(shortlistRepoProvider);
+    await repo.save({
+      'channelKey': widget.toKey,
+      'platform': (_to?['ref'] as Map<String, dynamic>?)?['platform'] ?? 'youtube',
+      'name': _to?['name'],
+      'niche': _to?['niche'],
+      'followers': _to?['followers'],
+      'thumbnailUrl': _to?['thumbnailUrl'],
+    }, fromChannelKey: widget.fromKey);
+    await repo.setStatus(widget.toKey, 'contacted');
+    if (mounted) {
+      setState(() => _contacted = true);
+      if (!silent) _snack('Marked as contacted — tracked in your shortlist');
+    }
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -262,7 +354,89 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
           icon: const Icon(Icons.copy_all),
           label: const Text('Copy full message'),
         ),
+        const SizedBox(height: 20),
+        _sendSection(context),
       ],
+    );
+  }
+
+  /// How to actually reach the creator. YouTube doesn't expose emails via API,
+  /// so we open their channel/About (where they list contact), let the user
+  /// share the message anywhere, or email if they already have the address.
+  Widget _sendSection(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.send, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text('Send it', style: theme.textTheme.titleMedium),
+              const Spacer(),
+              if (_contacted)
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: const Icon(Icons.check, size: 14, color: Colors.green),
+                  label: const Text('Contacted'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'YouTube hides creator emails, so open their channel to find their '
+            'listed contact, or share the message directly.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: _openChannel,
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Open channel'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _shareMessage,
+                icon: const Icon(Icons.ios_share, size: 16),
+                label: const Text('Share'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Their email (if you have it)',
+              hintText: 'name@example.com',
+              prefixIcon: const Icon(Icons.alternate_email),
+              suffixIcon: TextButton.icon(
+                onPressed: _emailNow,
+                icon: const Icon(Icons.mail_outline, size: 16),
+                label: const Text('Email'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: _contacted ? null : () => _markContacted(),
+            icon: const Icon(Icons.task_alt, size: 18),
+            label: Text(_contacted ? 'Marked as contacted' : 'Mark as contacted'),
+          ),
+        ],
+      ),
     );
   }
 
