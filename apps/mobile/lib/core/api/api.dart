@@ -22,16 +22,20 @@ class TandemApi {
     return Map<String, dynamic>.from(data['ref'] as Map);
   }
 
-  Future<Map<String, dynamic>> analyzeChannel(Map<String, dynamic> ref) async {
+  Future<Map<String, dynamic>> analyzeChannel(
+    Map<String, dynamic> ref, {
+    bool force = false,
+  }) async {
     final r = await _fns
         .httpsCallable('analyzeChannel')
-        .call<Map<String, dynamic>>({'ref': ref});
+        .call<Map<String, dynamic>>({'ref': ref, 'force': force});
     return Map<String, dynamic>.from(r.data);
   }
 
   Future<Map<String, dynamic>> findMatches({
     required String channelKey,
     int limit = 24,
+    bool refresh = false,
   }) async {
     final r =
         await _fns.httpsCallable('findMatches').call<Map<String, dynamic>>({
@@ -39,6 +43,7 @@ class TandemApi {
       'filters': {
         'limit': limit,
         'enableAiRerank': true,
+        'refresh': refresh,
       },
     });
     return Map<String, dynamic>.from(r.data);

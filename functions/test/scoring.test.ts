@@ -1,7 +1,16 @@
 import { describe, it, expect } from "vitest";
 
 import type { ChannelProfile } from "@tandem/shared-types";
-import { ADJACENT_NICHES, audienceTier, scoreCreator } from "../src/lib/scoring.js";
+import {
+  ADJACENT_NICHES,
+  audienceTier,
+  passesRealismGate,
+  scoreCreator,
+} from "../src/lib/scoring.js";
+
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+}
 
 function fake(p: Partial<ChannelProfile> = {}): ChannelProfile {
   return {
@@ -10,15 +19,19 @@ function fake(p: Partial<ChannelProfile> = {}): ChannelProfile {
     description: "",
     followers: 200_000,
     region: "UAE",
-    niche: "Food",
-    format: "Shorts swap",
-    topics: ["shorts", "reviews"],
+    niche: "Tech",
+    format: "Long-form guest",
+    topics: ["reviews", "gadgets", "smartphones"],
+    language: "en",
     confidence: "High",
     sourceSnapshotAt: "2026-05-26T00:00:00Z",
     engagementPct: 5,
+    lastUploadAt: daysAgo(10),
     ...p,
   };
 }
+
+const source = fake();
 
 describe("scoring", () => {
   it("audienceTier buckets correctly", () => {
@@ -33,54 +46,58 @@ describe("scoring", () => {
     expect(ADJACENT_NICHES.Travel).toContain("Food");
   });
 
-  it("same niche + region + format scores higher than mismatched", () => {
-    const inputs = {
-      myNiche: "Food",
-      myTier: "mid" as const,
-      myRegion: "UAE",
-      myFormat: "Shorts swap" as const,
-      myTopics: ["shorts", "reviews"],
-      myPlatform: "youtube" as const,
-    };
-    const same = scoreCreator(inputs, fake());
-    const off = scoreCreator(
-      inputs,
-      fake({ niche: "Finance", region: "US", format: "Long-form guest", topics: ["education"] }),
+  it("rewards an adjacent partner over an identical clone (complementarity)", () => {
+    const clone = scoreCreator(source, fake()); // same niche + same topics = clone
+    const adjacent = scoreCreator(
+      source,
+      fake({ niche: "Gaming", topics: ["gaming", "gadgets", "esports"] }),
     );
-    expect(same.score).toBeGreaterThan(off.score);
-    expect(same.score).toBeGreaterThanOrEqual(75);
+    expect(adjacent.score).toBeGreaterThan(clone.score);
   });
 
-  it("cross-platform short-form gets partial format credit", () => {
-    const inputs = {
-      myNiche: "Food",
-      myTier: "mid" as const,
-      myRegion: "UAE",
-      myFormat: "Shorts swap" as const,
-      myTopics: ["shorts"],
-      myPlatform: "youtube" as const,
-    };
-    const igReels = scoreCreator(
-      inputs,
-      fake({ ref: { platform: "instagram", externalId: "foo" }, format: "Reels swap" }),
+  it("penalises an unrelated niche with no overlap", () => {
+    const adjacent = scoreCreator(
+      source,
+      fake({ niche: "Gaming", topics: ["gaming", "gadgets"] }),
     );
-    const igLive = scoreCreator(
-      inputs,
-      fake({ ref: { platform: "instagram", externalId: "foo" }, format: "Live stream" }),
+    const unrelated = scoreCreator(
+      source,
+      fake({ niche: "Kids", topics: ["nursery", "rhymes"] }),
     );
-    expect(igReels.score).toBeGreaterThan(igLive.score);
+    expect(unrelated.score).toBeLessThan(adjacent.score);
+  });
+
+  it("favours comparable size over a near-edge size gap", () => {
+    const comparable = scoreCreator(source, fake({ followers: 300_000 }));
+    const edge = scoreCreator(source, fake({ followers: 950_000 })); // ~4.75x, still in-band
+    expect(comparable.score).toBeGreaterThan(edge.score);
+  });
+
+  it("prefers same-language partners", () => {
+    const sameLang = scoreCreator(source, fake({ niche: "Gaming", language: "en" }));
+    const crossLang = scoreCreator(source, fake({ niche: "Gaming", language: "ar" }));
+    expect(sameLang.score).toBeGreaterThan(crossLang.score);
+  });
+
+  it("realism gate rejects out-of-band size and inactive channels", () => {
+    expect(passesRealismGate(source, fake({ followers: 3_000_000 }))).toBe(false); // 15x
+    expect(passesRealismGate(source, fake({ followers: 5_000 }))).toBe(false); // 0.025x
+    expect(passesRealismGate(source, fake({ followers: 400_000 }))).toBe(true); // 2x
+    expect(passesRealismGate(source, fake({ lastUploadAt: daysAgo(800) }))).toBe(false);
+    expect(passesRealismGate(source, fake({ lastUploadAt: daysAgo(30) }))).toBe(true);
+  });
+
+  it("respects a supplied semantic similarity for complementarity", () => {
+    const clone = scoreCreator(source, fake({ niche: "Gaming" }), { overlapSimilarity: 0.98 });
+    const adjacent = scoreCreator(source, fake({ niche: "Gaming" }), { overlapSimilarity: 0.4 });
+    expect(adjacent.score).toBeGreaterThan(clone.score);
   });
 
   it("caps score at 100", () => {
-    const inputs = {
-      myNiche: "Food",
-      myTier: "mid" as const,
-      myRegion: "UAE",
-      myFormat: "Shorts swap" as const,
-      myTopics: ["shorts", "reviews"],
-      myPlatform: "youtube" as const,
-    };
-    const score = scoreCreator(inputs, fake({ engagementPct: 100 }));
-    expect(score.score).toBeLessThanOrEqual(100);
+    const s = scoreCreator(
+      source,
+      fake({ niche: "Gaming", engagementPct: 100, avgViews: 500_000, medianViews: 500_000 }),
+    );
+    expect(s.score).toBeLessThanOrEqual(100);
   });
 });

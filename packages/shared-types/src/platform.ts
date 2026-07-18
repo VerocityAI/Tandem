@@ -31,6 +31,8 @@ export const PostSchema = z.object({
   likes: z.number().int().nonnegative().optional(),
   comments: z.number().int().nonnegative().optional(),
   tags: z.array(z.string()).optional(),
+  /** BCP-47 / ISO 639-1 language of the post's audio or metadata, when known. */
+  language: z.string().optional(),
 });
 export type Post = z.infer<typeof PostSchema>;
 
@@ -70,10 +72,24 @@ export const ChannelProfileSchema = z.object({
   ref: ChannelRefSchema,
   name: z.string(),
   description: z.string(),
+  /** Channel avatar/thumbnail URL from the platform (for display). */
+  thumbnailUrl: z.string().url().optional(),
   followers: z.number().int().nonnegative(),
   views: z.number().int().nonnegative().optional(),
   posts: z.number().int().nonnegative().optional(),
   engagementPct: z.number().nonnegative().optional(),
+  /** Mean views across recent posts — the real reach proxy (subs can be stale/vanity). */
+  avgViews: z.number().int().nonnegative().optional(),
+  /** Median views across recent posts — robust to viral outliers. */
+  medianViews: z.number().int().nonnegative().optional(),
+  /** Upload cadence: posts per 30 days over the recent window. */
+  uploadsPerMonth: z.number().nonnegative().optional(),
+  /** ISO timestamp of the most recent upload (activity/recency signal). */
+  lastUploadAt: z.string().optional(),
+  /** Primary content language (ISO 639-1, e.g. "en") — key for audience transfer. */
+  language: z.string().optional(),
+  /** Cached semantic embedding of the profile text, for complementarity scoring. */
+  embedding: z.array(z.number()).optional(),
   region: RegionSchema,
   niche: NicheSchema,
   subNiche: z.string().optional(),

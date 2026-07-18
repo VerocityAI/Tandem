@@ -10,8 +10,7 @@ class DefaultFirebaseOptions {
     if (kIsWeb) return web;
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-            'Android Firebase options not yet configured. Run flutterfire configure.');
+        return android;
       case TargetPlatform.iOS:
         throw UnsupportedError(
             'iOS Firebase options not yet configured. Run flutterfire configure.');
@@ -28,5 +27,13 @@ class DefaultFirebaseOptions {
     authDomain: 'tandem-ce3fd.firebaseapp.com',
     storageBucket: 'tandem-ce3fd.firebasestorage.app',
     measurementId: 'G-FB7G2SG1PF',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBGKMIHn2084sTqly3wiRkiEUi5BjvSIAo',
+    appId: '1:159067562109:android:11350ae743fa2d83f91114',
+    messagingSenderId: '159067562109',
+    projectId: 'tandem-ce3fd',
+    storageBucket: 'tandem-ce3fd.firebasestorage.app',
   );
 }

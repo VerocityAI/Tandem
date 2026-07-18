@@ -12,8 +12,26 @@ import { fetchJsonWithTimeout } from "./http.js";
 
 export const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
-const MODEL = "gemini-2.5-flash";
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+/**
+ * Model routing for cost control.
+ * - MODEL_DEEP: stable flash model, proven available on this project.
+ * - MODEL_CHEAP: cheapest flash-lite (~2x cheaper) but currently INTERMITTENTLY
+ *   404s on this project, so callers opt in via `{ model: MODEL_CHEAP,
+ *   fallbackModel: MODEL_DEEP }` and we transparently fall back on failure.
+ */
+export const MODEL_DEEP = "gemini-flash-latest";
+export const MODEL_CHEAP = "gemini-flash-lite-latest";
+
+function endpoint(model: string): string {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+export interface GeminiOptions {
+  /** Preferred model (defaults to MODEL_DEEP). */
+  model?: string;
+  /** If the preferred model fails, retry once with this model. */
+  fallbackModel?: string;
+}
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -44,11 +62,33 @@ function extractJson(text: string): unknown {
 
 /**
  * Call Gemini with `prompt`, request JSON output, and validate it with `schema`.
- * Throws if the call fails, returns empty, or the JSON fails validation.
+ * Routes to `opts.model` (default MODEL_DEEP) and transparently retries once
+ * with `opts.fallbackModel` if the preferred model fails (e.g. cheap-model 404).
  */
-export async function callGemini<T>(prompt: string, schema: ZodType<T>): Promise<T> {
+export async function callGemini<T>(
+  prompt: string,
+  schema: ZodType<T>,
+  opts: GeminiOptions = {},
+): Promise<T> {
+  const primary = opts.model ?? MODEL_DEEP;
+  try {
+    return await callGeminiWithModel(prompt, schema, primary);
+  } catch (e) {
+    if (opts.fallbackModel && opts.fallbackModel !== primary) {
+      console.warn(`Gemini model ${primary} failed, falling back to ${opts.fallbackModel}:`, e);
+      return callGeminiWithModel(prompt, schema, opts.fallbackModel);
+    }
+    throw e;
+  }
+}
+
+async function callGeminiWithModel<T>(
+  prompt: string,
+  schema: ZodType<T>,
+  model: string,
+): Promise<T> {
   const key = GEMINI_API_KEY.value();
-  const url = new URL(ENDPOINT);
+  const url = new URL(endpoint(model));
   url.searchParams.set("key", key);
 
   const body = {

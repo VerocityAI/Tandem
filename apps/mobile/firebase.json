@@ -1,1 +1,1 @@
-{"flutter":{"platforms":{"dart":{"lib/core/firebase/firebase_options.dart":{"projectId":"tandem-ce3fd","configurations":{"web":"1:159067562109:web:113b72f1caf8cf4ff91114"}}}}}}
+{"flutter":{"platforms":{"dart":{"lib/core/firebase/firebase_options.dart":{"projectId":"tandem-ce3fd","configurations":{"android":"1:159067562109:android:11350ae743fa2d83f91114","web":"1:159067562109:web:113b72f1caf8cf4ff91114"}}},"android":{"default":{"projectId":"tandem-ce3fd","appId":"1:159067562109:android:11350ae743fa2d83f91114","fileOutput":"android/app/google-services.json"}}}}}

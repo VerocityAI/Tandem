@@ -38,6 +38,9 @@ apps/mobile/**/GeneratedPluginRegistrant.*
 .env
 .env.*
 !.env.example
+*.secret.local
+.secret.local
+functions/.secret.local
 *.keystore
 *.jks
 serviceAccountKey*.json
@@ -47,6 +50,12 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 .firebase/
+
+# Generated / build output (regenerated from source)
+functions/lib/
+functions/shared-types/
+packages/*/dist/
+apps/marketing/dist/
 
 # Local test auth tokens (Playwright recorded OAuth sessions)
 tools/testing/.auth/
@@ -71,3 +80,6 @@ coverage/
 
 # OS
 Desktop.ini
+
+# Vendored local toolchain (not part of the project)
+.local/

@@ -84,7 +84,9 @@ export function buildProfilePrompt(
     commentLines || "(none available)",
     "",
     "Return ONLY a JSON object with these fields (omit any you cannot infer):",
-    "  niche: one concise label (e.g. Tech, Food, Gaming, Finance, Kids)",
+    "  niche: one concise label — ALWAYS provide your single best guess (e.g. Tech,",
+    "    Food, Gaming, Finance, Education, Fitness, Beauty, Fashion, Travel, Music,",
+    "    Comedy, Entertainment, Business, Lifestyle, Kids)",
     "  subNiche: a more specific descriptor",
     "  region: primary audience region, or \"Global\"",
     `  format: one of ${VALID_FORMATS.map((f) => `\"${f}\"`).join(", ")}`,
@@ -108,10 +110,16 @@ export interface RerankCandidate {
   name: string;
   platform: Platform;
   niche: string;
+  subNiche?: string;
   region: string;
+  language?: string;
   followers: number;
+  avgViews?: number;
+  engagementPct?: number;
+  uploadsPerMonth?: number;
   format: Format;
   topics: string[];
+  contentPillars?: string[];
   description: string;
   ruleScore: number;
 }
@@ -124,23 +132,48 @@ export function buildRerankPrompt(
   candidates: RerankCandidate[],
 ): string {
   const candLines = candidates
-    .map(
-      (c, i) =>
-        `${i + 1}. key=${c.channelKey} | ${c.name} | ${c.platform} | niche=${c.niche} | region=${c.region} | followers=${c.followers} | format=${c.format} | topics=[${c.topics.slice(0, 6).join(", ")}] | ruleScore=${c.ruleScore}\n   desc: ${c.description.slice(0, 160)}`,
-    )
+    .map((c, i) => {
+      const facts = [
+        `niche=${c.niche}${c.subNiche ? `/${c.subNiche}` : ""}`,
+        `region=${c.region}`,
+        c.language ? `lang=${c.language}` : "",
+        `subs=${c.followers}`,
+        c.avgViews !== undefined ? `avgViews=${c.avgViews}` : "",
+        c.engagementPct !== undefined ? `eng=${c.engagementPct}%` : "",
+        c.uploadsPerMonth !== undefined ? `uploads/mo=${c.uploadsPerMonth}` : "",
+        `format=${c.format}`,
+        `topics=[${c.topics.slice(0, 6).join(", ")}]`,
+        c.contentPillars && c.contentPillars.length > 0
+          ? `pillars=[${c.contentPillars.slice(0, 4).join(", ")}]`
+          : "",
+        `ruleScore=${c.ruleScore}`,
+      ]
+        .filter(Boolean)
+        .join(" | ");
+      return `${i + 1}. key=${c.channelKey} | ${c.name} | ${c.platform} | ${facts}\n   desc: ${c.description.slice(0, 160)}`;
+    })
     .join("\n");
 
   return [
-    "You are matching creators for mutually beneficial COLLABORATIONS.",
-    "A great collaboration: reaches a NEW but ADJACENT audience, swaps",
-    "complementary content, and pairs creators of comparable standing so the",
-    "exchange is balanced. Penalise wildly mismatched audience sizes, unrelated",
-    "niches, and brand-safety risks.",
+    "You are matching YouTube creators for mutually beneficial COLLABORATIONS.",
+    "A great collaboration:",
+    "  - reaches a NEW but ADJACENT audience (relevant, but NOT an identical",
+    "    audience the source already has — clones add no incremental reach);",
+    "  - pairs creators of comparable-or-slightly-larger standing (realistically",
+    "    landable — penalise large subscriber gaps);",
+    "  - shares the same primary LANGUAGE (audience transfer needs a shared language);",
+    "  - partners with an ACTIVE, engaged, brand-safe channel with real reach",
+    "    (avg views matter more than vanity subscriber counts).",
+    "Penalise: identical/near-duplicate audiences, unrelated niches, big size",
+    "mismatches, language mismatches, inactive channels, and brand-safety risks.",
     "",
     "SOURCE creator:",
     `  Name: ${source.name}`,
     `  Niche: ${source.niche}${source.subNiche ? ` / ${source.subNiche}` : ""}`,
-    `  Region: ${source.region} | Followers: ${source.followers} | Format: ${source.format}`,
+    `  Region: ${source.region} | Language: ${source.language ?? "unknown"} | Subs: ${source.followers} | Format: ${source.format}`,
+    source.medianViews ?? source.avgViews
+      ? `  Avg views: ${source.medianViews ?? source.avgViews}`
+      : "",
     `  Topics: ${source.topics.join(", ")}`,
     source.idealCollaboratorProfile ? `  Ideal partner: ${source.idealCollaboratorProfile}` : "",
     "",
@@ -149,7 +182,7 @@ export function buildRerankPrompt(
     "",
     "Score each candidate 0-100 on genuine collaboration value (NOT just",
     "similarity). Return ONLY JSON of the form:",
-    '{ "matches": [ { "channelKey": "...", "aiScore": 0-100, "rationale": "one sentence", "suggestedCollab": "a concrete collab idea", "risks": ["..."] } ] }',
+    '{ "matches": [ { "channelKey": "...", "aiScore": 0-100, "rationale": "2-3 sentences on why this is (or isn\'t) a strong collaborator", "suggestedCollab": "a concrete collab idea", "risks": ["..."] } ] }',
     "Include every candidate's channelKey exactly as given.",
   ]
     .filter(Boolean)

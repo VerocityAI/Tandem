@@ -4,13 +4,13 @@ import { z } from "zod";
 
 import { ChannelProfileSchema } from "@tandem/shared-types";
 
-import { GEMINI_API_KEY, callGemini } from "../lib/gemini.js";
+import { GEMINI_API_KEY, MODEL_CHEAP, MODEL_DEEP, callGemini } from "../lib/gemini.js";
 import { buildOutreachPrompt, OutreachSchema } from "../lib/prompts.js";
 import { assertAndIncrement } from "../lib/quota.js";
 
 const InputSchema = z.object({
-  fromChannelKey: z.string(),
-  toChannelKey: z.string(),
+  fromKey: z.string(),
+  toKey: z.string(),
   angle: z.string().max(200).optional(),
 });
 
@@ -28,14 +28,14 @@ export const draftOutreach = onCall(
 
     const parsed = InputSchema.safeParse(req.data);
     if (!parsed.success) throw new HttpsError("invalid-argument", parsed.error.message);
-    const { fromChannelKey, toChannelKey, angle } = parsed.data;
+    const { fromKey, toKey, angle } = parsed.data;
 
     await assertAndIncrement(uid, "outreach");
 
     const db = getFirestore();
     const [fromSnap, toSnap] = await Promise.all([
-      db.doc(`channels/${fromChannelKey}`).get(),
-      db.doc(`channels/${toChannelKey}`).get(),
+      db.doc(`channels/${fromKey}`).get(),
+      db.doc(`channels/${toKey}`).get(),
     ]);
 
     if (!fromSnap.exists || !toSnap.exists) {
@@ -48,6 +48,7 @@ export const draftOutreach = onCall(
     const result = await callGemini(
       buildOutreachPrompt(from, to, angle ?? "a short-form content swap"),
       OutreachSchema,
+      { model: MODEL_CHEAP, fallbackModel: MODEL_DEEP },
     );
     return result;
   },

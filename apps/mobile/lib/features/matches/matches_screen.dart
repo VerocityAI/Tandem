@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:tandem/core/api/api.dart';
+import 'package:tandem/core/data/collections.dart';
+import 'package:tandem/core/util/format.dart';
+import 'package:tandem/core/widgets/score_ring.dart';
 
 class MatchesScreen extends ConsumerStatefulWidget {
   const MatchesScreen({required this.channelKey, super.key});
@@ -22,6 +25,7 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
   int _filteredOut = 0;
   bool _loading = true;
   String? _error;
+  Map<String, dynamic>? _sourceProfile;
 
   @override
   void initState() {
@@ -29,7 +33,7 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refresh = false}) async {
     if (!mounted) return;
     setState(() {
       _loading = true;
@@ -38,7 +42,8 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
     try {
       final sourceProfile = await _loadSourceProfile();
       final api = ref.read(apiProvider);
-      final result = await api.findMatches(channelKey: widget.channelKey);
+      final result =
+          await api.findMatches(channelKey: widget.channelKey, refresh: refresh);
       final raw = result['matches'] as List<dynamic>? ?? [];
       final allMatches =
           raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
@@ -47,6 +52,7 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
           : _rankMatches(sourceProfile, allMatches);
       if (!mounted) return;
       setState(() {
+        _sourceProfile = sourceProfile;
         _matches = ranked.kept;
         _hiddenMatches = ranked.hidden;
         _filteredOut = ranked.hidden.length;
@@ -144,7 +150,8 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
     if (familyScore == null) {
       return (
         score: null,
-        reason: 'Different, non-adjacent niche family — little audience overlap',
+        reason:
+            'Different, non-adjacent niche family — little audience overlap',
       );
     }
 
@@ -360,15 +367,66 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
 
   Set<String> _tokenize(String text) {
     const stop = <String>{
-      'with', 'from', 'this', 'that', 'your', 'about', 'over', 'into',
-      'were', 'have', 'will', 'just', 'they', 'them', 'their', 'there',
-      'what', 'when', 'where', 'which', 'while', 'video', 'videos',
-      'channel', 'youtube', 'tiktok', 'instagram', 'content', 'subscribe',
-      'subscribers', 'watch', 'official', 'best', 'more', 'every', 'make',
-      'made', 'shorts', 'long', 'live', 'series', 'guest', 'collab',
-      'creator', 'creators', 'audience', 'people', 'general', 'world',
-      'welcome', 'check', 'follow', 'click', 'here', 'http', 'https',
-      'www', 'com', 'new', 'all',
+      'with',
+      'from',
+      'this',
+      'that',
+      'your',
+      'about',
+      'over',
+      'into',
+      'were',
+      'have',
+      'will',
+      'just',
+      'they',
+      'them',
+      'their',
+      'there',
+      'what',
+      'when',
+      'where',
+      'which',
+      'while',
+      'video',
+      'videos',
+      'channel',
+      'youtube',
+      'tiktok',
+      'instagram',
+      'content',
+      'subscribe',
+      'subscribers',
+      'watch',
+      'official',
+      'best',
+      'more',
+      'every',
+      'make',
+      'made',
+      'shorts',
+      'long',
+      'live',
+      'series',
+      'guest',
+      'collab',
+      'creator',
+      'creators',
+      'audience',
+      'people',
+      'general',
+      'world',
+      'welcome',
+      'check',
+      'follow',
+      'click',
+      'here',
+      'http',
+      'https',
+      'www',
+      'com',
+      'new',
+      'all',
     };
     final out = <String>{};
     for (final raw in text.toLowerCase().split(RegExp('[^a-z0-9]+'))) {
@@ -385,20 +443,20 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'Profiling home',
-          onPressed: () => context.go('/connect'),
+          tooltip: 'Home',
+          onPressed: () => context.go('/discover'),
           icon: const Icon(Icons.home_rounded),
         ),
         title: const Text('Collaborator Discovery'),
         actions: [
           IconButton(
             tooltip: 'View channel profile',
-            onPressed: () => context.go('/profile/${widget.channelKey}'),
+            onPressed: () => context.push('/profile/${widget.channelKey}'),
             icon: const Icon(Icons.account_circle_outlined),
           ),
           IconButton(
-            tooltip: 'Refresh',
-            onPressed: _load,
+            tooltip: 'Refresh (new AI run)',
+            onPressed: () => _load(refresh: true),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -425,6 +483,7 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
                           SliverToBoxAdapter(
                             child: _DiscoveryHero(
                               channelKey: widget.channelKey,
+                              sourceProfile: _sourceProfile,
                               total: _matches!.length,
                               filteredOut: _filteredOut,
                             ),
@@ -481,17 +540,25 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
 class _DiscoveryHero extends StatelessWidget {
   const _DiscoveryHero({
     required this.channelKey,
+    required this.sourceProfile,
     required this.total,
     required this.filteredOut,
   });
 
   final String channelKey;
+  final Map<String, dynamic>? sourceProfile;
   final int total;
   final int filteredOut;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final name = sourceProfile?['name'] as String? ?? channelKey;
+    final niche = sourceProfile?['niche'] as String? ?? '';
+    final followers = sourceProfile?['followers'] as num?;
+    final platform =
+        (sourceProfile?['ref'] as Map<String, dynamic>?)?['platform']
+            as String?;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
       child: Container(
@@ -512,28 +579,51 @@ class _DiscoveryHero extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'MVP Discovery Feed',
-              style: theme.textTheme.labelLarge?.copyWith(
+              'COLLABORATOR MATCHES',
+              style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.primary,
-                letterSpacing: 0.2,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Ranked collaborators for your channel',
-              style: theme.textTheme.titleLarge?.copyWith(
+                letterSpacing: 0.6,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Channel key: $channelKey',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-              ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                ChannelAvatar(
+                  name: name,
+                  niche: niche,
+                  imageUrl: sourceProfile?['thumbnailUrl'] as String?,
+                  platform: platform,
+                  size: 46,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        [
+                          if (niche.isNotEmpty) niche,
+                          if (followers != null) '${fmtCount(followers)} subs',
+                        ].join(' • '),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color:
+                              theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -709,6 +799,7 @@ class _MatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final name = match['name'] as String? ?? 'Unknown';
+    final thumbnailUrl = match['thumbnailUrl'] as String?;
     final channelKey = match['channelKey'] as String? ?? '';
     final followers = match['followers'] as num? ?? 0;
     final niche = match['niche'] as String? ?? '';
@@ -716,6 +807,7 @@ class _MatchCard extends StatelessWidget {
     final region = match['region'] as String? ?? '';
     final score = match['score'] as num? ?? 0;
     final reason = match['reason'] as String? ?? '';
+    final whyMatch = match['whyMatch'] as String? ?? '';
     final mutualTag = match['mutualBenefitTag'] as String? ?? '';
     final aiRationale = match['aiRationale'] as String?;
     final aiCollab = match['aiCollab'] as String?;
@@ -725,14 +817,22 @@ class _MatchCard extends StatelessWidget {
         ?.map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
 
-    final scoreColor = score >= 80
-        ? Colors.green
-        : score >= 60
-            ? Colors.orange
-            : Colors.grey;
+    final language = (match['language'] as String?)?.trim();
+    final reachViews =
+        (match['medianViews'] as num?) ?? (match['avgViews'] as num?);
+    final engagementPct = match['engagementPct'] as num?;
+    final uploadsPerMonth = match['uploadsPerMonth'] as num?;
+    final lastUploadAt = match['lastUploadAt'] as String?;
+    num? complementarity;
+    if (breakdown != null) {
+      for (final b in breakdown) {
+        if (b['label'] == 'Complementarity')
+          complementarity = b['value'] as num?;
+      }
+    }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -745,8 +845,8 @@ class _MatchCard extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer
-                      .withValues(alpha: 0.4),
+                  color:
+                      theme.colorScheme.errorContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -770,44 +870,45 @@ class _MatchCard extends StatelessWidget {
             // Header row: name + score
             Row(
               children: [
+                ChannelAvatar(name: name, niche: niche, imageUrl: thumbnailUrl),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${_fmtNum(followers)} subscribers • $niche${subNiche != null ? ' → $subNiche' : ''} • $region',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
-                        ),
+                      const SizedBox(height: 5),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        children: [
+                          _MetaPill(
+                            icon: Icons.people_alt_outlined,
+                            text: '${_fmtNum(followers)} subs',
+                          ),
+                          if ((subNiche ?? niche).isNotEmpty)
+                            _MetaPill(
+                              icon: Icons.sell_outlined,
+                              text: subNiche ?? niche,
+                            ),
+                          if (region.isNotEmpty && region != 'Global')
+                            _MetaPill(
+                              icon: Icons.public,
+                              text: region,
+                            ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: scoreColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: scoreColor.withValues(alpha: 0.36)),
-                  ),
-                  child: Text(
-                    '${score.toInt()}%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: scoreColor,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+                const SizedBox(width: 8),
+                ScoreRing(score: score.toInt()),
               ],
             ),
 
@@ -843,116 +944,115 @@ class _MatchCard extends StatelessWidget {
               ),
             ],
 
-            // Reason
-            if (reason.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(reason, style: theme.textTheme.bodySmall),
-            ],
-
-            // AI rationale
-            if (aiRationale != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.auto_awesome, size: 14, color: Colors.amber[700]),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      aiRationale,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(fontStyle: FontStyle.italic),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
-            // Suggested collab
-            if (aiCollab != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.lightbulb_outline,
-                    size: 14,
-                    color: Colors.teal,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Collab idea: $aiCollab',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
-            // Topics
-            if (topics.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: topics
-                    .take(6)
-                    .map(
-                      (t) => Chip(
-                        label: Text(t, style: const TextStyle(fontSize: 10)),
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-
-            // Score breakdown
-            if (breakdown != null && breakdown.isNotEmpty) ...[
+            // Why this is a good match (multi-sentence explanation)
+            if (whyMatch.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _ScoreBreakdown(breakdown: breakdown),
-            ],
-
-            // Risks
-            if (aiRisks.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: aiRisks
-                    .map(
-                      (r) => Chip(
-                        avatar: const Icon(Icons.warning_amber, size: 12),
-                        label: Text(r, style: const TextStyle(fontSize: 10)),
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        backgroundColor: Colors.orange.withValues(alpha: 0.1),
-                      ),
-                    )
-                    .toList(),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.insights,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Why this match',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      whyMatch,
+                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+                    ),
+                  ],
+                ),
               ),
             ],
+
+            // Signals: reach, engagement, activity, language, complementarity
+            _SignalChips(
+              language: language,
+              reachViews: reachViews,
+              engagementPct: engagementPct,
+              uploadsPerMonth: uploadsPerMonth,
+              lastUploadAt: lastUploadAt,
+              complementarity: complementarity,
+            ),
+
+            // Actionable collab idea highlighted; the rest is tucked into a
+            // collapsible "Match details" so the card stays visual-first.
+            if (aiCollab != null) ...[
+              const SizedBox(height: 10),
+              _CollabIdea(idea: aiCollab),
+            ],
+            _MatchDetails(
+              reason: reason,
+              aiRationale: aiRationale,
+              topics: topics,
+              breakdown: breakdown,
+              aiRisks: aiRisks,
+            ),
 
             // Actions
             const SizedBox(height: 12),
             Row(
               children: [
+                Consumer(
+                  builder: (context, ref, _) {
+                    final saved =
+                        ref.watch(shortlistKeysProvider).contains(channelKey);
+                    return IconButton.filledTonal(
+                      tooltip:
+                          saved ? 'Saved to shortlist' : 'Save to shortlist',
+                      icon:
+                          Icon(saved ? Icons.bookmark : Icons.bookmark_border),
+                      onPressed: () {
+                        final repo = ref.read(shortlistRepoProvider);
+                        if (saved) {
+                          repo.remove(channelKey);
+                        } else {
+                          repo.save(match, fromChannelKey: sourceKey);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Saved to shortlist')),
+                          );
+                        }
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.person, size: 16),
-                    label: const Text('View Profile'),
-                    onPressed: () => context.go('/profile/$channelKey'),
+                    label: const Text('Profile'),
+                    onPressed: () => context.push('/profile/$channelKey'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton.icon(
                     icon: const Icon(Icons.mail_outline, size: 16),
-                    label: const Text('Draft Outreach'),
+                    label: const Text('Outreach'),
                     onPressed: () =>
-                        context.go('/outreach/$sourceKey/$channelKey'),
+                        context.push('/outreach/$sourceKey/$channelKey'),
                   ),
                 ),
               ],
@@ -968,6 +1068,300 @@ class _MatchCard extends StatelessWidget {
     if (value >= 1e6) return '${(value / 1e6).toStringAsFixed(1)}M';
     if (value >= 1e3) return '${(value / 1e3).toStringAsFixed(1)}K';
     return value.toStringAsFixed(0);
+  }
+}
+
+/// Small icon + label used for channel metadata (subs, niche, region).
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: c),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: c, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Highlighted, actionable collaboration suggestion.
+class _CollabIdea extends StatelessWidget {
+  const _CollabIdea({required this.idea});
+
+  final String idea;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const teal = Color(0xFF0D9488);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: teal.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lightbulb, size: 16, color: teal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              idea,
+              style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Collapsible container for the detail-heavy content (rationale, topics,
+/// score breakdown, risks) so the card stays scannable by default.
+class _MatchDetails extends StatelessWidget {
+  const _MatchDetails({
+    required this.reason,
+    required this.aiRationale,
+    required this.topics,
+    required this.breakdown,
+    required this.aiRisks,
+  });
+
+  final String reason;
+  final String? aiRationale;
+  final List<String> topics;
+  final List<Map<String, dynamic>>? breakdown;
+  final List<String> aiRisks;
+
+  Widget _line(BuildContext context, IconData icon, String text, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasContent = reason.isNotEmpty ||
+        aiRationale != null ||
+        topics.isNotEmpty ||
+        (breakdown?.isNotEmpty ?? false) ||
+        aiRisks.isNotEmpty;
+    if (!hasContent) return const SizedBox.shrink();
+
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: 6),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Icon(Icons.tune, size: 18, color: theme.colorScheme.primary),
+        title: Text(
+          'Match details',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        children: [
+          if (aiRationale != null)
+            _line(context, Icons.auto_awesome, aiRationale!,
+                const Color(0xFFD97706)),
+          if (reason.isNotEmpty)
+            _line(context, Icons.check_circle_outline, reason,
+                theme.colorScheme.primary),
+          if (topics.isNotEmpty)
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: topics
+                  .take(6)
+                  .map(
+                    (t) => Chip(
+                      label: Text(t, style: const TextStyle(fontSize: 11)),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                  .toList(),
+            ),
+          if (breakdown != null && breakdown!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _ScoreBreakdown(breakdown: breakdown!),
+          ],
+          if (aiRisks.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: aiRisks
+                  .map(
+                    (r) => Chip(
+                      avatar: const Icon(Icons.warning_amber, size: 12),
+                      label: Text(r, style: const TextStyle(fontSize: 11)),
+                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Compact row of collaboration signals derived from the match payload:
+/// reach (avg views), engagement, activity/recency, language, and a
+/// complementarity indicator (adjacent-audience fit vs. clone risk).
+class _SignalChips extends StatelessWidget {
+  const _SignalChips({
+    required this.language,
+    required this.reachViews,
+    required this.engagementPct,
+    required this.uploadsPerMonth,
+    required this.lastUploadAt,
+    required this.complementarity,
+  });
+
+  final String? language;
+  final num? reachViews;
+  final num? engagementPct;
+  final num? uploadsPerMonth;
+  final String? lastUploadAt;
+  final num? complementarity;
+
+  static String _fmtNum(num value) {
+    if (value >= 1e9) return '${(value / 1e9).toStringAsFixed(1)}B';
+    if (value >= 1e6) return '${(value / 1e6).toStringAsFixed(1)}M';
+    if (value >= 1e3) return '${(value / 1e3).toStringAsFixed(1)}K';
+    return value.toStringAsFixed(0);
+  }
+
+  static String? _relativeUpload(String? iso) {
+    if (iso == null) return null;
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return null;
+    final d = DateTime.now().difference(dt);
+    if (d.inDays >= 365) return 'Active ${(d.inDays / 365).floor()}y ago';
+    if (d.inDays >= 30) return 'Active ${(d.inDays / 30).floor()}mo ago';
+    if (d.inDays >= 1) return 'Active ${d.inDays}d ago';
+    return 'Active today';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chips = <Widget>[];
+
+    if (reachViews != null && reachViews! > 0) {
+      chips.add(
+        _chip(theme, Icons.visibility_outlined,
+            '${_fmtNum(reachViews!)} avg views'),
+      );
+    }
+    if (engagementPct != null && engagementPct! > 0) {
+      chips.add(
+        _chip(
+          theme,
+          Icons.favorite_outline,
+          '${engagementPct!.toStringAsFixed(1)}% engagement',
+        ),
+      );
+    }
+    final activity = _relativeUpload(lastUploadAt);
+    if (activity != null) {
+      chips.add(_chip(theme, Icons.schedule, activity));
+    } else if (uploadsPerMonth != null && uploadsPerMonth! > 0) {
+      chips.add(
+        _chip(
+          theme,
+          Icons.schedule,
+          '${uploadsPerMonth!.toStringAsFixed(1)} uploads/mo',
+        ),
+      );
+    }
+    if (language != null && language!.isNotEmpty) {
+      chips.add(_chip(theme, Icons.language, language!.toUpperCase()));
+    }
+    if (complementarity != null) {
+      final c = complementarity!;
+      String label;
+      Color color;
+      if (c >= 70) {
+        label = 'Adjacent-audience fit';
+        color = Colors.green;
+      } else if (c >= 40) {
+        label = 'Some audience overlap';
+        color = Colors.orange;
+      } else {
+        label = 'Clone / low new reach';
+        color = Colors.grey;
+      }
+      chips.add(_chip(theme, Icons.diversity_3, label, color: color));
+    }
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(spacing: 6, runSpacing: 6, children: chips),
+    );
+  }
+
+  Widget _chip(ThemeData theme, IconData icon, String label, {Color? color}) {
+    final c = color ?? theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: c.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: c),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: c,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,7 +1,8 @@
 {
   "projects": {
     "default": "tandem-ce3fd",
-    "dev": "tandem-ce3fd"
+    "dev": "tandem-ce3fd",
+    "prod": "tandem-ce3fd"
   },
   "targets": {}
 }

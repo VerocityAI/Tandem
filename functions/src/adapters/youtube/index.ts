@@ -21,7 +21,7 @@ import {
   channelKey,
 } from "@tandem/shared-types";
 
-import { inferFormat, inferNiche, inferRegion, topicsForNiche } from "../../lib/inference.js";
+import { inferFormat, inferLanguage, inferNiche, inferRegion, topicsForNiche } from "../../lib/inference.js";
 import { fetchJsonWithTimeout } from "../../lib/http.js";
 
 export const YOUTUBE_API_KEY = defineSecret("YOUTUBE_API_KEY");
@@ -146,15 +146,19 @@ function toProfile(ref: ChannelRef, item: YouTubeChannelItem): ChannelProfile {
   const description = snippet.description ?? "";
   const text = `${title} ${description} ${branding.keywords ?? ""} ${(item.topicDetails?.topicCategories ?? []).join(" ")}`;
   const niche = inferNiche(text);
+  const region = branding.country ?? snippet.country ?? inferRegion(text);
+  const thumbnailUrl = snippet.thumbnails?.high?.url ?? snippet.thumbnails?.default?.url;
   return {
     ref: { ...ref, externalId: item.id, handle: snippet.customUrl ?? ref.handle },
     name: title,
     description,
+    thumbnailUrl,
     followers: Number(stats.subscriberCount ?? 0),
     views: Number(stats.viewCount ?? 0),
     posts: Number(stats.videoCount ?? 0),
-    region: branding.country ?? snippet.country ?? inferRegion(text),
+    region,
     niche,
+    language: inferLanguage(text, region),
     format: inferFormat(text, niche),
     topics: topicsForNiche(text, niche),
     confidence: stats.subscriberCount ? "High" : "Medium",
@@ -224,7 +228,7 @@ export const youtubeAdapter: PlatformAdapter = {
       const vData = await fetchJsonWithTimeout<{
         items?: {
           id: string;
-          snippet?: { tags?: string[] };
+          snippet?: { tags?: string[]; defaultAudioLanguage?: string; defaultLanguage?: string };
           statistics?: {
             viewCount?: string;
             likeCount?: string;
@@ -239,6 +243,7 @@ export const youtubeAdapter: PlatformAdapter = {
         const detail = detailMap.get(post.id);
         if (!detail) continue;
         post.tags = detail.snippet?.tags;
+        post.language = detail.snippet?.defaultAudioLanguage ?? detail.snippet?.defaultLanguage;
         post.views = Number(detail.statistics?.viewCount ?? 0);
         post.likes = Number(detail.statistics?.likeCount ?? 0);
         post.comments = Number(detail.statistics?.commentCount ?? 0);

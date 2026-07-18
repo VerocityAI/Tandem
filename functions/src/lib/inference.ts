@@ -18,7 +18,7 @@ function lc(text: string): string {
 const NICHE_KEYWORDS: Array<[string, string[]]> = [
   ["Kids", ["nursery", "rhymes", "toddler", "preschool", "kids", "cocomelon", "lullaby", "for children"]],
   ["Gaming", ["gaming", "gameplay", "playthrough", "esports", "minecraft", "fortnite", "speedrun", "twitch"]],
-  ["Tech", ["tech", "technology", "gadget", "smartphone", "unboxing", "review", "software", "hardware", "ai", "coding", "developer"]],
+  ["Tech", ["tech", "technology", "gadget", "smartphone", "unboxing", "review", "software", "hardware", "ai", "artificial intelligence", "coding", "developer"]],
   ["Finance", ["finance", "investing", "stocks", "crypto", "trading", "money", "personal finance", "wealth", "budget"]],
   ["Education", ["education", "tutorial", "course", "learn", "study", "explainer", "lecture", "how to"]],
   ["Fitness", ["fitness", "workout", "gym", "bodybuilding", "training", "exercise", "calisthenics"]],
@@ -26,7 +26,7 @@ const NICHE_KEYWORDS: Array<[string, string[]]> = [
   ["Beauty", ["beauty", "makeup", "skincare", "cosmetics", "grwm"]],
   ["Fashion", ["fashion", "outfit", "style", "ootd", "haul", "streetwear"]],
   ["Food", ["food", "cooking", "recipe", "chef", "baking", "kitchen", "restaurant", "foodie", "mukbang"]],
-  ["Travel", ["travel", "vlog", "adventure", "wanderlust", "destination", "backpacking", "tourism"]],
+  ["Travel", ["travel", "travels", "vlog", "adventure", "wanderlust", "destination", "backpacking", "tourism", "tourist", "walking tour", "city walk", "city walking", "urban exploration", "sightseeing", "landmark", "walking tours"]],
   ["Music", ["music", "song", "cover", "guitar", "piano", "producer", "beats", "singer", "band"]],
   ["Comedy", ["comedy", "funny", "sketch", "prank", "humor", "standup", "satire"]],
   ["Entertainment", ["entertainment", "reaction", "celebrity", "movies", "film review", "tv show"]],
@@ -34,11 +34,24 @@ const NICHE_KEYWORDS: Array<[string, string[]]> = [
   ["Lifestyle", ["lifestyle", "daily vlog", "routine", "minimalism", "productivity", "home"]],
 ];
 
+/** Escape a keyword for safe embedding in a RegExp. */
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Whole-word (plural-tolerant) keyword test. Prevents substring false positives
+ * like the keyword "ai" matching "tr[ai]ls" or "review" matching "preview".
+ */
+function hasKeyword(text: string, keyword: string): boolean {
+  return new RegExp(`\\b${escapeRe(keyword)}(?:s|es)?\\b`, "i").test(text);
+}
+
 /** Infer a coarse niche label from free text. Defaults to "Lifestyle". */
 export function inferNiche(text: string): string {
   const t = lc(text);
   for (const [niche, keywords] of NICHE_KEYWORDS) {
-    if (keywords.some((k) => t.includes(k))) return niche;
+    if (keywords.some((k) => hasKeyword(t, k))) return niche;
   }
   return "Lifestyle";
 }
@@ -64,16 +77,47 @@ export function inferRegion(text: string): string {
   return "Global";
 }
 
+/** Region label -> default ISO 639-1 language, used as a coarse fallback. */
+const REGION_LANGUAGE: Record<string, string> = {
+  India: "hi",
+  UAE: "ar",
+  "Saudi Arabia": "ar",
+  Philippines: "en",
+  UK: "en",
+  US: "en",
+  Canada: "en",
+  Australia: "en",
+  Global: "en",
+};
+
+/**
+ * Coarse language guess from free text + region. Detects non-Latin scripts
+ * (Arabic, Devanagari, CJK, Cyrillic) directly; otherwise falls back to the
+ * region default, then English. Real signal comes from video audio-language
+ * metadata (see computePrimaryLanguage); this is only a last resort.
+ */
+export function inferLanguage(text: string, region?: string): string {
+  const t = text ?? "";
+  if (/[\u0600-\u06ff]/.test(t)) return "ar"; // Arabic
+  if (/[\u0900-\u097f]/.test(t)) return "hi"; // Devanagari
+  if (/[\u3040-\u30ff\u4e00-\u9fff]/.test(t)) return "ja"; // Kana/Han (JP-leaning)
+  if (/[\uac00-\ud7af]/.test(t)) return "ko"; // Hangul
+  if (/[\u0400-\u04ff]/.test(t)) return "ru"; // Cyrillic
+  if (region && REGION_LANGUAGE[region]) return REGION_LANGUAGE[region];
+  return "en";
+}
+
 /** Infer a collaboration format from free text + niche. */
 export function inferFormat(text: string, niche: string): Format {
   const t = lc(text);
-  if (t.includes("tiktok")) return "TikTok swap";
-  if (t.includes("reel") || t.includes("instagram")) return "Reels swap";
-  if (t.includes("short")) return "Shorts swap";
-  if (t.includes("giveaway") || t.includes("contest")) return "Giveaway";
-  if (t.includes("live") || t.includes("stream")) return "Live stream";
-  if (t.includes("series") || t.includes("collab")) return "Series collab";
-  if (t.includes("podcast") || t.includes("interview") || t.includes("guest")) {
+  const has = (k: string): boolean => hasKeyword(t, k);
+  if (has("tiktok")) return "TikTok swap";
+  if (has("reel") || has("instagram")) return "Reels swap";
+  if (has("short")) return "Shorts swap";
+  if (has("giveaway") || has("contest")) return "Giveaway";
+  if (has("live") || has("livestream") || has("stream")) return "Live stream";
+  if (has("series") || has("collab")) return "Series collab";
+  if (has("podcast") || has("interview") || has("guest")) {
     return "Long-form guest";
   }
   // Niche defaults: short-form-heavy niches lean to Shorts; talky niches to long-form.

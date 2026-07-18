@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:tandem/core/api/api.dart';
+import 'package:tandem/core/widgets/score_ring.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({required this.channelKey, super.key});
@@ -77,7 +78,7 @@ class _ProfileViewState extends ConsumerState<_ProfileView> {
     try {
       await ref
           .read(apiProvider)
-          .analyzeChannel(Map<String, dynamic>.from(channelRef));
+          .analyzeChannel(Map<String, dynamic>.from(channelRef), force: true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Channel re-profiled.')),
@@ -157,8 +158,14 @@ class _ProfileViewState extends ConsumerState<_ProfileView> {
                 children: [
                   Row(
                     children: [
-                      Icon(_platformIcon(platform), size: 28),
-                      const SizedBox(width: 8),
+                      ChannelAvatar(
+                        name: name,
+                        niche: niche,
+                        imageUrl: data['thumbnailUrl'] as String?,
+                        platform: platform,
+                        size: 54,
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           name,
@@ -377,19 +384,6 @@ class _ProfileViewState extends ConsumerState<_ProfileView> {
     if (value >= 1e6) return '${(value / 1e6).toStringAsFixed(1)}M';
     if (value >= 1e3) return '${(value / 1e3).toStringAsFixed(1)}K';
     return value.toStringAsFixed(0);
-  }
-
-  static IconData _platformIcon(String platform) {
-    switch (platform) {
-      case 'youtube':
-        return Icons.play_circle_fill;
-      case 'instagram':
-        return Icons.camera_alt;
-      case 'tiktok':
-        return Icons.music_note;
-      default:
-        return Icons.public;
-    }
   }
 }
 
