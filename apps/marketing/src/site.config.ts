@@ -4,17 +4,17 @@
 
 export const site = {
   "$schema": "./packages/branding/branding.schema.json",
-  "name": "Tandem",
-  "shortName": "Tandem",
+  "name": "Cohyve",
+  "shortName": "Cohyve",
   "tagline": "Find your next collab.",
-  "description": "Tandem analyses any creator channel and recommends the right collaborators across YouTube, Instagram, and TikTok.",
-  "domain": "tandem.app",
-  "marketingUrl": "https://tandem.app",
-  "appUrl": "https://app.tandem.app",
-  "supportEmail": "hello@tandem.app",
-  "bundleIdPrefix": "app.tandem",
-  "androidApplicationId": "app.tandem.client",
-  "iosBundleId": "app.tandem.client",
+  "description": "Cohyve analyses any creator channel and recommends the right collaborators across YouTube, Instagram, and TikTok.",
+  "domain": "cohyve.app",
+  "marketingUrl": "https://cohyve.app",
+  "appUrl": "https://app.cohyve.app",
+  "supportEmail": "hello@cohyve.app",
+  "bundleIdPrefix": "app.cohyve",
+  "androidApplicationId": "app.cohyve.client",
+  "iosBundleId": "app.cohyve.client",
   "colors": {
     "accentLight": "#b11f4b",
     "accentLightHover": "#9a1a41",
@@ -24,8 +24,8 @@ export const site = {
     "bgDark": "#3d3b3a"
   },
   "social": {
-    "twitter": "@tandemapp",
-    "linkedin": "tandem"
+    "twitter": "@cohyve",
+    "linkedin": "cohyve"
   }
 } as const;
 

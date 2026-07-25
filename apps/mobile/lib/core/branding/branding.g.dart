@@ -8,14 +8,14 @@ import 'package:flutter/material.dart';
 class Branding {
   Branding._();
 
-  static const String name = "Tandem";
-  static const String shortName = "Tandem";
+  static const String name = "Cohyve";
+  static const String shortName = "Cohyve";
   static const String tagline = "Find your next collab.";
-  static const String description = "Tandem analyses any creator channel and recommends the right collaborators across YouTube, Instagram, and TikTok.";
-  static const String domain = "tandem.app";
-  static const String marketingUrl = "https://tandem.app";
-  static const String appUrl = "https://app.tandem.app";
-  static const String supportEmail = "hello@tandem.app";
+  static const String description = "Cohyve analyses any creator channel and recommends the right collaborators across YouTube, Instagram, and TikTok.";
+  static const String domain = "cohyve.app";
+  static const String marketingUrl = "https://cohyve.app";
+  static const String appUrl = "https://app.cohyve.app";
+  static const String supportEmail = "hello@cohyve.app";
 
   // Colors (sourced from prototype Clawpilot palette).
   static const Color accentLight = Color(0xFFB11F4B);
