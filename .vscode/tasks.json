@@ -4,7 +4,7 @@
 		{
 			"label": "Run Flutter Web App",
 			"type": "shell",
-			"command": "cd \"c:\\App\\Tandem\\Tandem\\apps\\mobile\" && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 --dart-define=USE_EMULATOR=true",
+			"command": "cd \"c:\\App\\Cohyve\\Cohyve\\apps\\mobile\" && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 --dart-define=USE_EMULATOR=true",
 			"isBackground": true
 		}
 	]

@@ -2,7 +2,7 @@
   "name": "functions",
   "version": "0.1.0",
   "private": true,
-  "description": "Tandem Cloud Functions (gen2, TypeScript). Houses all secrets and AI/YouTube/IG/TikTok API access.",
+  "description": "Cohyve Cloud Functions (gen2, TypeScript). Houses all secrets and AI/YouTube/IG/TikTok API access.",
   "type": "module",
   "main": "lib/index.js",
   "engines": {
@@ -21,7 +21,7 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
-    "@tandem/shared-types": "file:./shared-types",
+    "@cohyve/shared-types": "file:./shared-types",
     "firebase-admin": "^12.7.0",
     "firebase-functions": "^6.1.1",
     "zod": "^3.23.8"

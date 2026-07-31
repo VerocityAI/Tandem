@@ -19,7 +19,7 @@ import {
   type Post,
   type SearchQuery,
   channelKey,
-} from "@tandem/shared-types";
+} from "@cohyve/shared-types";
 
 import { inferFormat, inferLanguage, inferNiche, inferRegion, topicsForNiche } from "../../lib/inference.js";
 import { fetchJsonWithTimeout } from "../../lib/http.js";

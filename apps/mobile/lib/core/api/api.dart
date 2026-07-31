@@ -5,12 +5,12 @@ final functionsProvider = Provider<FirebaseFunctions>(
   (_) => FirebaseFunctions.instanceFor(region: 'us-central1'),
 );
 
-final apiProvider = Provider<TandemApi>(
-  (ref) => TandemApi(ref.watch(functionsProvider)),
+final apiProvider = Provider<CohyveApi>(
+  (ref) => CohyveApi(ref.watch(functionsProvider)),
 );
 
-class TandemApi {
-  TandemApi(this._fns);
+class CohyveApi {
+  CohyveApi(this._fns);
   final FirebaseFunctions _fns;
 
   Future<Map<String, dynamic>?> detectChannel(String input) async {

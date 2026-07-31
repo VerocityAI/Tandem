@@ -26,7 +26,11 @@ const fullTitle = title === site.name ? `${site.name} — ${site.tagline}` : `${
   </head>
   <body>
     <header class="px-6 py-5 max-w-6xl mx-auto flex items-center justify-between">
-      <a href="/" class="font-semibold text-lg">{site.name}</a>
+      <a href="/" class="font-semibold text-lg">
+        <span style="background: linear-gradient(90deg, theme('colors.accent'), theme('colors.gradient-mid')); -webkit-background-clip: text; background-clip: text; color: transparent;">
+          {site.name}
+        </span>
+      </a>
       <nav class="flex items-center gap-6 text-sm">
         <a href="/#how" class="hover:text-accent">How it works</a>
         <a href="/#scoring" class="hover:text-accent">Scoring</a>

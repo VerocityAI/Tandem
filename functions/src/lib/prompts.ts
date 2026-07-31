@@ -18,9 +18,10 @@ import {
   type Platform,
   type Post,
   ConfidenceSchema,
+  ContactsSchema,
   FormatSchema,
   RerankResponseSchema,
-} from "@tandem/shared-types";
+} from "@cohyve/shared-types";
 
 // ---------------------------------------------------------------------------
 // 1. Profile enrichment
@@ -201,6 +202,22 @@ export const OutreachSchema = z.object({
 });
 export type Outreach = z.infer<typeof OutreachSchema>;
 
+// Extended outreach with contact information and delivery options
+export const OutreachWithContactsSchema = z.object({
+  subject: z.string().max(160),
+  message: z.string().max(1500),
+  talkingPoints: z.array(z.string()).max(6).default([]),
+  callToAction: z.string().max(200).optional(),
+  contacts: ContactsSchema.optional(),
+  preferredMethod: z
+    .object({
+      method: z.string(),
+      destination: z.string().optional(),
+    })
+    .optional(),
+});
+export type OutreachWithContacts = z.infer<typeof OutreachWithContactsSchema>;
+
 export function buildOutreachPrompt(
   from: ChannelProfile,
   to: ChannelProfile,
@@ -217,6 +234,6 @@ export function buildOutreachPrompt(
     `Collaboration angle: ${angle}`,
     "",
     "Return ONLY JSON:",
-    '{ "subject": "...", "message": "...", "talkingPoints": ["...", "..."], "callToAction": "..." }',
+    '{ "subject": "...", "message": "...", "talkingPoints": ["...", "..."], "callToAction": "...", "contacts": { ... }, "preferredMethod": { "method": "...", "destination": "..." } }',
   ].join("\n");
 }

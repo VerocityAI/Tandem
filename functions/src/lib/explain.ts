@@ -7,7 +7,7 @@
  * present, is shown as an additional insight on top of this.
  */
 
-import type { ChannelProfile } from "@tandem/shared-types";
+import type { ChannelProfile } from "@cohyve/shared-types";
 
 import { ADJACENT_NICHES } from "./scoring.js";
 

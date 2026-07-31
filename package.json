@@ -1,8 +1,8 @@
 {
-  "name": "tandem",
+  "name": "cohyve",
   "private": true,
   "version": "0.1.0",
-  "description": "Tandem (working name) - multi-platform creator collaboration tool. Monorepo root.",
+  "description": "Cohyve (working name) - multi-platform creator collaboration tool. Monorepo root.",
   "workspaces": [
     "apps/marketing",
     "functions",

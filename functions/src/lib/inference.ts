@@ -8,7 +8,7 @@
  * overrides these when it succeeds.
  */
 
-import type { Format } from "@tandem/shared-types";
+import type { Format } from "@cohyve/shared-types";
 
 function lc(text: string): string {
   return (text ?? "").toLowerCase();

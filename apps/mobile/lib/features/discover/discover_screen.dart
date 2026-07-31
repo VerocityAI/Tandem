@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:tandem/core/api/api.dart';
-import 'package:tandem/core/data/collections.dart';
-import 'package:tandem/core/util/format.dart';
-import 'package:tandem/core/widgets/score_ring.dart';
+import 'package:cohyve/core/api/api.dart';
+import 'package:cohyve/core/data/collections.dart';
+import 'package:cohyve/core/util/format.dart';
+import 'package:cohyve/core/widgets/score_ring.dart';
+import 'package:cohyve/core/theme/app_theme.dart';
 
 /// "My Channels" — the home/Discover tab. Lists the channels the user has
 /// analysed and routes into their matches. First-run shows guided onboarding.
@@ -19,10 +21,18 @@ class DiscoverScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Discover'),
+        title: Text(
+          'Discover',
+          style: TextStyle(
+            foreground: Paint()
+              ..shader = LinearGradient(
+                colors: [BrandingExtended.gradientStart, BrandingExtended.gradientMid],
+              ).createShader(const Rect.fromLTWH(0, 0, 300, 70)),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(LucideIcons.plus),
             tooltip: 'Analyse a channel',
             onPressed: () => context.push('/connect'),
           ),
@@ -53,7 +63,7 @@ class DiscoverScreen extends ConsumerWidget {
       floatingActionButton: channelsAsync.valueOrNull?.isNotEmpty ?? false
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/connect'),
-              icon: const Icon(Icons.add),
+              icon: const Icon(LucideIcons.plus),
               label: const Text('Analyse channel'),
             )
           : null,
@@ -69,7 +79,7 @@ class _ChannelCard extends ConsumerWidget {
     final platform = channel['platform'] as String? ?? 'youtube';
     // channelKey == "<platform>_<externalId>"
     final externalId =
-        key.startsWith('${platform}_') ? key.substring(platform.length + 1) : key;
+        key.startsWith('${platform}_') ? key.substring(platform.length + 1) : '';
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Re-analysing…')),
     );
@@ -113,133 +123,73 @@ class _ChannelCard extends ConsumerWidget {
         ],
       ),
     );
-    return ok ?? false;
+    return ok == true;
   }
 
-  /// Removes the channel and shows an Undo snackbar that restores it.
-  Future<void> _removeWithUndo(
-      BuildContext context, WidgetRef ref, String key, String name) async {
-    final repo = ref.read(channelsRepoProvider);
-    final snapshot = Map<String, dynamic>.from(channel);
-    await repo.removeChannel(key);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Removed "$name"'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () => repo.restoreChannel(snapshot),
-          ),
-        ),
-      );
+  Future<void> _openProfile(BuildContext context, String key) async {
+    context.push('/profile/$key');
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final key =
-        channel['channelKey'] as String? ?? channel['id'] as String? ?? '';
+    final key = channel['channelKey'] as String? ?? channel['id'] as String? ?? '';
     final name = channel['name'] as String? ?? key;
-    final niche = channel['niche'] as String? ?? '';
-    final followers = channel['followers'] as num? ?? 0;
-    final thumbnailUrl = channel['thumbnailUrl'] as String?;
-    final platform = channel['platform'] as String?;
-    return Dismissible(
-      key: ValueKey('channel_$key'),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => _confirmRemove(context, name),
-      onDismissed: (_) => _removeWithUndo(context, ref, key, name),
-      background: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        alignment: Alignment.centerRight,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.error.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('Remove', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-            SizedBox(width: 8),
-            Icon(Icons.delete_outline, color: Colors.white),
-          ],
-        ),
-      ),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 10),
-        child: ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          leading: ChannelAvatar(
-            name: name,
-            niche: niche,
-            imageUrl: thumbnailUrl,
-            platform: platform,
-          ),
-          title:
-              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(
-            '${fmtCount(followers)} subscribers${niche.isNotEmpty ? ' • $niche' : ''}',
-          ),
-          trailing: PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) async {
-              switch (value) {
-                case 'matches':
-                  context.push('/matches/$key');
-                case 'profile':
-                  context.push('/profile/$key');
-                case 'reanalyse':
-                  await _reanalyse(context, ref, key);
-                case 'remove':
-                  if (await _confirmRemove(context, name) && context.mounted) {
-                    await _removeWithUndo(context, ref, key, name);
-                  }
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'matches',
-                child: ListTile(
-                  leading: Icon(Icons.diversity_3),
-                  title: Text('Find collaborators'),
+    final followers = (channel['followers'] as num? ?? 0).toInt();
+    final score = (channel['score'] as num? ?? 0).toInt();
+    final platform = channel['platform'] as String? ?? 'youtube';
+    final niche = (channel['niche'] as String? ?? '').trim();
+
+    return Card(
+      child: InkWell(
+        onTap: () => _openProfile(context, key),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              ChannelAvatar(
+                name: name,
+                niche: niche,
+                imageUrl: channel['thumbnailUrl'] as String?,
+                platform: platform,
+                size: 54,
+                showBorder: true,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${fmtCount(followers)} subs'
+                      '${niche.isNotEmpty ? ' • $niche' : ''}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              PopupMenuItem(
-                value: 'profile',
-                child: ListTile(
-                  leading: Icon(Icons.person_outline),
-                  title: Text('View profile'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'reanalyse',
-                child: ListTile(
-                  leading: Icon(Icons.refresh),
-                  title: Text('Re-analyse'),
-                ),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'remove',
-                child: ListTile(
-                  leading: Icon(Icons.delete_outline, color: Colors.red),
-                  title: Text('Remove', style: TextStyle(color: Colors.red)),
-                ),
+              if (score > 0) ScoreRing(score: score, size: 40),
+              IconButton(
+                icon: const Icon(LucideIcons.chevronRight),
+                onPressed: () => _openProfile(context, key),
               ),
             ],
           ),
-          onTap: () => context.push('/matches/$key'),
         ),
       ),
     );
   }
 }
 
-/// Guided first-run empty state.
 class _Onboarding extends StatelessWidget {
   const _Onboarding();
 
@@ -247,41 +197,91 @@ class _Onboarding extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.travel_explore,
-                  size: 64, color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                'Find your next collab',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Paste any YouTube channel to analyse it, then get a ranked list '
-                'of compatible collaborators — each with an explainable fit score.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Gradient orb with icon
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    BrandingExtended.gradientStart.withValues(alpha: 0.3),
+                    BrandingExtended.gradientMid.withValues(alpha: 0.15),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
-              const _OnboardingSteps(),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => context.push('/connect'),
-                icon: const Icon(Icons.analytics_outlined),
-                label: const Text('Analyse your first channel'),
+              child: const Icon(
+                LucideIcons.radio,
+                size: 56,
+                color: BrandingExtended.gradientStart,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No channels yet',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Analyse your first YouTube, Instagram, or TikTok channel '
+              'to start discovering high-fit collaborators with transparent scoring.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    BrandingExtended.gradientStart,
+                    BrandingExtended.gradientMid,
+                    BrandingExtended.gradientEnd,
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: BrandingExtended.gradientStart.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => context.push('/connect'),
+                  borderRadius: BorderRadius.circular(16),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.scan, size: 18, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Analyse your first channel',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const _OnboardingSteps(),
+          ],
         ),
       ),
     );
@@ -294,33 +294,37 @@ class _OnboardingSteps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const steps = [
-      (Icons.link, 'Connect', 'Paste your channel URL or @handle'),
-      (Icons.auto_awesome, 'Analyse', 'AI profiles your niche & audience'),
-      (Icons.diversity_3, 'Match', 'Get ranked, explained collaborators'),
+      (LucideIcons.link, 'Connect', 'Paste your channel URL or @handle'),
+      (LucideIcons.flaskConical, 'Analyse', 'AI profiles your niche & audience'),
+      (LucideIcons.users, 'Match', 'Get ranked, explained collaborators'),
     ];
     return Column(
       children: [
         for (final s in steps)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.12),
-                  child: Icon(s.$1,
-                      size: 18, color: Theme.of(context).colorScheme.primary),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        BrandingExtended.gradientStart.withValues(alpha: 0.15),
+                        BrandingExtended.gradientMid.withValues(alpha: 0.08),
+                      ],
+                    ),
+                  ),
+                  child: Icon(s.$1, size: 20, color: BrandingExtended.gradientStart),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(s.$2,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(s.$2, style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text(
                         s.$3,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(

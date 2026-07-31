@@ -7,7 +7,7 @@ import {
   type ChannelProfile,
   PlatformSchema,
   channelKey as makeChannelKey,
-} from "@tandem/shared-types";
+} from "@cohyve/shared-types";
 
 import { platformRegistry } from "../adapters/registry.js";
 import { YOUTUBE_API_KEY } from "../adapters/youtube/index.js";

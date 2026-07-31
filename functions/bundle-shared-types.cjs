@@ -1,4 +1,4 @@
-// Copies the built @tandem/shared-types package into functions/shared-types/
+// Copies the built @cohyve/shared-types package into functions/shared-types/
 // so that `firebase deploy` can bundle it (Cloud Build only sees functions/).
 const fs = require("fs");
 const path = require("path");
@@ -26,7 +26,7 @@ delete pkg.scripts;
 delete pkg.devDependencies;
 fs.writeFileSync(path.join(dst, "package.json"), JSON.stringify(pkg, null, 2));
 
-console.log("  bundled @tandem/shared-types into functions/shared-types/");
+console.log("  bundled @cohyve/shared-types into functions/shared-types/");
 
 function copyDirSync(srcDir, dstDir) {
   fs.mkdirSync(dstDir, { recursive: true });

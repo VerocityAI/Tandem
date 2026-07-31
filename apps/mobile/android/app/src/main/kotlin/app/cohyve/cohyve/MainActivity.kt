@@ -1,4 +1,4 @@
-package app.tandem.tandem
+package app.cohyve.cohyve
 
 import io.flutter.embedding.android.FlutterActivity
 

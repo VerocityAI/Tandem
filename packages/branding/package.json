@@ -1,5 +1,5 @@
 {
-  "name": "@tandem/branding",
+  "name": "@cohyve/branding",
   "version": "0.1.0",
   "private": true,
   "description": "Single source of truth for app name, bundle ids, colors, and copy.",

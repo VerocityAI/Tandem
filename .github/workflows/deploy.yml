@@ -40,7 +40,7 @@ jobs:
         env:
           RECAPTCHA_SITE_KEY: ${{ secrets.RECAPTCHA_SITE_KEY }}
         run: |
-          flutter create . --platforms=web --org app.tandem --project-name tandem
+          flutter create . --platforms=web --org app.cohyve --project-name cohyve
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
           flutter build web --release --dart-define=RECAPTCHA_SITE_KEY=$RECAPTCHA_SITE_KEY

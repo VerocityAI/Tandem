@@ -1,0 +1,4 @@
+# Place brand image assets here.
+# Required: cohyve_logo.png (square, ideally >=1024x1024) — used for the
+# native splash screen (flutter_native_splash) and app launcher icons
+# (flutter_launcher_icons), and available in-app via Image.asset.

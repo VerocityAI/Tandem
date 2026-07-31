@@ -74,8 +74,11 @@ class ShortlistRepository {
     }, SetOptions(merge: true));
   }
 
-  Future<void> setStatus(String channelKey, String status) =>
-      _col().doc(channelKey).set({'status': status}, SetOptions(merge: true));
+  Future<void> setStatus(String channelKey, String status, {String? fromKey}) =>
+      _col().doc(channelKey).set({
+        'status': status,
+        if (fromKey != null) 'fromChannelKey': fromKey,
+      }, SetOptions(merge: true));
 
   Future<void> setNote(String channelKey, String note) =>
       _col().doc(channelKey).set({'note': note}, SetOptions(merge: true));

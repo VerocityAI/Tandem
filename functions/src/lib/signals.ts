@@ -6,7 +6,7 @@
  * collaboration scorer needs. No network calls, no AI.
  */
 
-import type { Post } from "@tandem/shared-types";
+import type { Post } from "@cohyve/shared-types";
 
 import { inferLanguage } from "./inference.js";
 

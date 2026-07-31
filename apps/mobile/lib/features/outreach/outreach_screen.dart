@@ -2,12 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:tandem/core/api/api.dart';
-import 'package:tandem/core/data/collections.dart';
-import 'package:tandem/core/widgets/score_ring.dart';
+import 'package:cohyve/core/api/api.dart';
+import 'package:cohyve/core/data/collections.dart';
+import 'package:cohyve/core/widgets/contact_links.dart';
+import 'package:cohyve/core/widgets/score_ring.dart';
+import 'package:cohyve/core/theme/app_theme.dart';
 
 class OutreachScreen extends ConsumerStatefulWidget {
   const OutreachScreen({required this.fromKey, required this.toKey, super.key});
@@ -18,7 +22,8 @@ class OutreachScreen extends ConsumerStatefulWidget {
   ConsumerState<OutreachScreen> createState() => _OutreachScreenState();
 }
 
-class _OutreachScreenState extends ConsumerState<OutreachScreen> {
+class _OutreachScreenState extends ConsumerState<OutreachScreen>
+    with SingleTickerProviderStateMixin {
   final _angleController = TextEditingController();
   final _emailController = TextEditingController();
   Map<String, dynamic>? _from;
@@ -28,17 +33,27 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
   bool _generating = false;
   bool _contacted = false;
   String? _error;
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _init();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
   }
 
   @override
   void dispose() {
     _angleController.dispose();
     _emailController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -51,7 +66,10 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
       ]);
       _from = results[0].data();
       _to = results[1].data();
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        _controller.forward();
+      }
       await _generate();
     } on Object catch (e) {
       if (mounted) {
@@ -75,7 +93,15 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
             toKey: widget.toKey,
             angle: angle.isEmpty ? null : angle,
           );
-      if (mounted) setState(() => _draft = result);
+      if (mounted) {
+        setState(() => _draft = result);
+        // Pre-fill the email field if we extracted one from their descriptions.
+        final email =
+            (result['contacts'] as Map?)?['email'] as String? ?? '';
+        if (email.isNotEmpty && _emailController.text.trim().isEmpty) {
+          _emailController.text = email;
+        }
+      }
     } on Object catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -120,337 +146,450 @@ class _OutreachScreenState extends ConsumerState<OutreachScreen> {
     final d = _draft ?? {};
     final subject = d['subject'] as String? ?? '';
     final message = d['message'] as String? ?? '';
-    final cta = d['callToAction'] as String?;
-    return [
-      if (subject.isNotEmpty) 'Subject: $subject',
-      message,
-      if (cta != null && cta.isNotEmpty) cta,
-    ].join('\n\n');
-  }
-
-  Future<void> _shareMessage() async {
-    await Share.share(_fullMessage(),
-        subject: _draft?['subject'] as String? ?? 'Collaboration');
+    return 'Subject: $subject\n\n$message';
   }
 
   Future<void> _emailNow() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      _snack('Enter their email first');
+      _snack('Please enter an email address');
       return;
     }
-    final subject = _draft?['subject'] as String? ?? 'Collaboration';
-    final uri = Uri(
-      scheme: 'mailto',
-      path: email,
-      query: 'subject=${Uri.encodeComponent(subject)}'
-          '&body=${Uri.encodeComponent(_draft?['message'] as String? ?? '')}',
-    );
-    if (!await launchUrl(uri)) {
-      _snack('No email app available');
-      return;
-    }
-    await _markContacted(silent: true);
+    // TODO: Implement actual email sending when backend supports it.
+    _snack('Email feature coming soon!');
   }
 
-  /// Save the recipient to the shortlist and mark them as "contacted" (CRM).
-  Future<void> _markContacted({bool silent = false}) async {
+  Future<void> _markContacted() async {
     final repo = ref.read(shortlistRepoProvider);
-    await repo.save({
-      'channelKey': widget.toKey,
-      'platform': (_to?['ref'] as Map<String, dynamic>?)?['platform'] ?? 'youtube',
-      'name': _to?['name'],
-      'niche': _to?['niche'],
-      'followers': _to?['followers'],
-      'thumbnailUrl': _to?['thumbnailUrl'],
-    }, fromChannelKey: widget.fromKey);
-    await repo.setStatus(widget.toKey, 'contacted');
+    await repo.setStatus(
+      widget.toKey,
+      'contacted',
+      fromKey: widget.fromKey,
+    );
+    setState(() => _contacted = true);
     if (mounted) {
-      setState(() => _contacted = true);
-      if (!silent) _snack('Marked as contacted — tracked in your shortlist');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(LucideIcons.checkCircle, size: 18, color: Colors.white),
+              SizedBox(width: 10),
+              Text('Marked as contacted'),
+            ],
+          ),
+        ),
+      );
     }
   }
 
-  void _snack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _shareMessage() {
+    final message = _fullMessage();
+    Share.share(message);
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fromName = _from?['name'] as String? ?? widget.fromKey;
+    final toName = _to?['name'] as String? ?? widget.toKey;
+    final platform = _to?['platform'] as String? ?? 'youtube';
+    final niche = (_to?['niche'] as String? ?? '').trim();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Draft outreach')),
+      appBar: AppBar(
+        title: const Text('Outreach'),
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _pairHeader(context),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _angleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Collaboration angle (optional)',
-                    hintText: 'e.g. a Shorts swap on city travel tips',
-                    prefixIcon: Icon(Icons.tips_and_updates_outlined),
+          : FadeTransition(
+              opacity: _fadeAnimation,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Creator info card
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              ChannelAvatar(
+                                name: toName,
+                                niche: niche,
+                                imageUrl: _to?['thumbnailUrl'] as String?,
+                                platform: platform,
+                                size: 50,
+                                showBorder: true,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      toName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    Text(
+                                      niche.isNotEmpty ? niche : platform,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Outreach angle input
+                      Text(
+                        'Suggested Angle (optional)',
+                        style: theme.textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _angleController,
+                        decoration: InputDecoration(
+                          hintText: 'e.g., "Gaming setup review"',
+                          prefixIcon: Icon(
+                            LucideIcons.messageCircle,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Generate button
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: LinearGradient(
+                            colors: [
+                              BrandingExtended.gradientStart,
+                              BrandingExtended.gradientMid,
+                            ],
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _generating ? null : _generate,
+                            borderRadius: BorderRadius.circular(14),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: _generating
+                                    ? const SizedBox(
+                                        height: 18,
+                                        width: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: const [
+                                          Icon(LucideIcons.sparkles, size: 16, color: Colors.white),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Generate Outreach',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      if (_error != null && _draft == null) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: BrandingExtended.danger.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(LucideIcons.alertTriangle, size: 18, color: BrandingExtended.danger),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: TextStyle(color: BrandingExtended.danger),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      if (_draft != null) ...[
+                        const SizedBox(height: 20),
+                        // Email preview card
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'AI-Drafted Outreach',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 12),
+                                _fieldWithCopy(
+                                  context,
+                                  'Subject',
+                                  _draft!['subject'] as String? ?? '',
+                                  () => _copy('Subject', _draft!['subject']),
+                                ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surfaceContainer,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    _draft!['message'] as String? ?? '',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _copy('Message', _fullMessage()),
+                                        icon: const Icon(LucideIcons.copy, size: 16),
+                                        label: const Text('Copy All'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: _shareMessage,
+                                        icon: const Icon(LucideIcons.share, size: 16),
+                                        label: const Text('Share'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Action buttons
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Builder(
+                                  builder: (context) {
+                                    final draftContacts =
+                                        (_draft?['contacts'] as Map?)?.map(
+                                      (k, v) => MapEntry(k.toString(), v),
+                                    );
+                                    final preferredMethod =
+                                        (_draft?['preferredMethod'] as Map?)?.map(
+                                      (k, v) => MapEntry(k.toString(), v),
+                                    );
+                                    final hasContacts =
+                                        ContactLinks.hasAny(draftContacts);
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              hasContacts
+                                                  ? LucideIcons.contact
+                                                  : LucideIcons.mail,
+                                              size: 18,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              hasContacts
+                                                  ? 'Reach Out'
+                                                  : 'Next Steps',
+                                              style: theme.textTheme.titleMedium,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        if (hasContacts) ...[
+                                          Text(
+                                            'Contacts we found in their channel & video '
+                                            'descriptions — the recommended one is highlighted.',
+                                            style:
+                                                theme.textTheme.bodySmall?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.65),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          ContactLinks(
+                                            contacts: draftContacts!,
+                                            preferredMethod: preferredMethod,
+                                          ),
+                                        ] else
+                                          Text(
+                                            "We couldn't find public contact details in their "
+                                            'descriptions. Open their channel to check their About '
+                                            'tab, or share the message directly.',
+                                            style:
+                                                theme.textTheme.bodySmall?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.65),
+                                            ),
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            BrandingExtended.gradientStart,
+                                            BrandingExtended.gradientMid,
+                                          ],
+                                        ),
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: _openChannel,
+                                          borderRadius: BorderRadius.circular(14),
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(LucideIcons.externalLink, size: 16, color: Colors.white),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  'Open channel',
+                                                  style: TextStyle(color: Colors.white),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _shareMessage,
+                                      icon: const Icon(LucideIcons.share, size: 16),
+                                      label: const Text('Share'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: InputDecoration(
+                                    labelText: 'Their email (if you have it)',
+                                    hintText: 'name@example.com',
+                                    prefixIcon: Icon(
+                                      LucideIcons.atSign,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                if (!_contacted)
+                                  TextButton.icon(
+                                    onPressed: _markContacted,
+                                    icon: const Icon(LucideIcons.checkCircle, size: 18),
+                                    label: const Text('Mark as contacted'),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  onSubmitted: (_) => _generate(),
                 ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: _generating ? null : _generate,
-                  icon: _generating
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.auto_awesome),
-                  label: Text(_generating
-                      ? 'Writing…'
-                      : _draft == null
-                          ? 'Generate message'
-                          : 'Regenerate'),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                ],
-                if (_draft != null) ...[
-                  const SizedBox(height: 20),
-                  _draftView(context, _draft!),
-                ],
-              ],
+              ),
             ),
     );
   }
 
-  Widget _pairHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+  Widget _fieldWithCopy(
+    BuildContext context,
+    String label,
+    String text,
+    VoidCallback onCopy,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: _channelChip(_from, 'You')),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child:
-                  Icon(Icons.arrow_forward, color: theme.colorScheme.primary),
+            Text(label, style: theme.textTheme.labelLarge),
+            TextButton.icon(
+              onPressed: onCopy,
+              icon: const Icon(LucideIcons.copy, size: 14),
+              label: const Text('Copy'),
             ),
-            Expanded(child: _channelChip(_to, 'Them')),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _channelChip(Map<String, dynamic>? data, String fallback) {
-    final name = data?['name'] as String? ?? fallback;
-    final niche = data?['niche'] as String? ?? '';
-    final platform =
-        (data?['ref'] as Map<String, dynamic>?)?['platform'] as String?;
-    return Column(
-      children: [
-        ChannelAvatar(
-          name: name,
-          niche: niche,
-          imageUrl: data?['thumbnailUrl'] as String?,
-          platform: platform,
-          size: 52,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-
-  Widget _draftView(BuildContext context, Map<String, dynamic> draft) {
-    final theme = Theme.of(context);
-    final subject = draft['subject'] as String? ?? '';
-    final message = draft['message'] as String? ?? '';
-    final talkingPoints =
-        (draft['talkingPoints'] as List<dynamic>?)?.cast<String>() ?? [];
-    final cta = draft['callToAction'] as String?;
-    final full = [
-      if (subject.isNotEmpty) 'Subject: $subject',
-      message,
-      if (cta != null && cta.isNotEmpty) cta,
-    ].join('\n\n');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (subject.isNotEmpty) ...[
-          _fieldLabel(context, 'Subject', () => _copy('Subject', subject)),
-          const SizedBox(height: 4),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(subject,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-          ),
-          const SizedBox(height: 14),
-        ],
-        _fieldLabel(context, 'Message', () => _copy('Message', message)),
         const SizedBox(height: 4),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SelectableText(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
-            ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            text,
+            style: theme.textTheme.bodyMedium,
           ),
         ),
-        if (talkingPoints.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Text('Talking points', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 6),
-          ...talkingPoints.map(
-            (p) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 16, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(p)),
-                ],
-              ),
-            ),
-          ),
-        ],
-        if (cta != null && cta.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.flag_outlined,
-                    size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(child: Text(cta)),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 20),
-        FilledButton.icon(
-          onPressed: () => _copy('Full message', full),
-          icon: const Icon(Icons.copy_all),
-          label: const Text('Copy full message'),
-        ),
-        const SizedBox(height: 20),
-        _sendSection(context),
       ],
     );
   }
 
-  /// How to actually reach the creator. YouTube doesn't expose emails via API,
-  /// so we open their channel/About (where they list contact), let the user
-  /// share the message anywhere, or email if they already have the address.
-  Widget _sendSection(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.send, size: 18, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text('Send it', style: theme.textTheme.titleMedium),
-              const Spacer(),
-              if (_contacted)
-                Chip(
-                  visualDensity: VisualDensity.compact,
-                  avatar: const Icon(Icons.check, size: 14, color: Colors.green),
-                  label: const Text('Contacted'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'YouTube hides creator emails, so open their channel to find their '
-            'listed contact, or share the message directly.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: _openChannel,
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('Open channel'),
-              ),
-              OutlinedButton.icon(
-                onPressed: _shareMessage,
-                icon: const Icon(Icons.ios_share, size: 16),
-                label: const Text('Share'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: 'Their email (if you have it)',
-              hintText: 'name@example.com',
-              prefixIcon: const Icon(Icons.alternate_email),
-              suffixIcon: TextButton.icon(
-                onPressed: _emailNow,
-                icon: const Icon(Icons.mail_outline, size: 16),
-                label: const Text('Email'),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: _contacted ? null : () => _markContacted(),
-            icon: const Icon(Icons.task_alt, size: 18),
-            label: Text(_contacted ? 'Marked as contacted' : 'Mark as contacted'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _fieldLabel(BuildContext context, String label, VoidCallback onCopy) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.titleMedium),
-        TextButton.icon(
-          onPressed: onCopy,
-          icon: const Icon(Icons.copy, size: 15),
-          label: const Text('Copy'),
-        ),
-      ],
-    );
-  }
+  ThemeData get theme => Theme.of(context);
 }

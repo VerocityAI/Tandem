@@ -8,7 +8,7 @@
  * Reuses the GEMINI_API_KEY secret already declared for Gemini generation.
  */
 
-import type { ChannelProfile } from "@tandem/shared-types";
+import type { ChannelProfile } from "@cohyve/shared-types";
 
 import { GEMINI_API_KEY } from "./gemini.js";
 import { fetchJsonWithTimeout } from "./http.js";

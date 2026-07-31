@@ -13,7 +13,7 @@ import {
   type PlatformAdapter,
   type Post,
   type SearchQuery,
-} from "@tandem/shared-types";
+} from "@cohyve/shared-types";
 
 function parseTikTokInput(text: string): ChannelRef | null {
   const value = text.trim();

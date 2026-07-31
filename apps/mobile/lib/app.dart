@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:tandem/core/branding/branding.g.dart';
-import 'package:tandem/core/router/router.dart';
-import 'package:tandem/core/theme/app_theme.dart';
+import 'package:cohyve/core/branding/branding.g.dart';
+import 'package:cohyve/core/router/router.dart';
+import 'package:cohyve/core/theme/app_theme.dart';
 
-class TandemApp extends ConsumerWidget {
-  const TandemApp({super.key});
+class CohyveApp extends ConsumerWidget {
+  const CohyveApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

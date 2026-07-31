@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "app.tandem.tandem"
+    namespace = "app.cohyve.cohyve"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,10 @@ android {
     }
 
     defaultConfig {
-        // Play Store application ID (from packages/branding/branding.config.json).
+        // Play Store application ID. Must match the package_name registered in
+        // Firebase (google-services.json) that carries the signing SHA-1 so
+        // native Google Sign-In works. The registered Firebase Android app is
+        // "app.tandem.client"; the user-visible brand (label/icon) is "Cohyve".
         applicationId = "app.tandem.client"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

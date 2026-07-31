@@ -64,6 +64,18 @@ export const FormatSchema = z.enum([
 ]);
 export type Format = z.infer<typeof FormatSchema>;
 
+/** Public contact points parsed from a creator's descriptions. */
+export const ContactsSchema = z.object({
+  email: z.string().optional(),
+  instagram: z.string().optional(),
+  tiktok: z.string().optional(),
+  twitter: z.string().optional(),
+  discord: z.string().optional(),
+  website: z.string().optional(),
+  other: z.array(z.string()).max(8).optional(),
+});
+export type Contacts = z.infer<typeof ContactsSchema>;
+
 /**
  * The unified, platform-agnostic profile that downstream code (UI, scorer, prompts) consumes.
  * Raw platform-specific data is stashed in `raw` for debugging only.
@@ -101,6 +113,8 @@ export const ChannelProfileSchema = z.object({
   brandSafetyNotes: z.string().max(500).optional(),
   idealCollaboratorProfile: z.string().max(500).optional(),
   redFlags: z.array(z.string()).max(10).optional(),
+  /** Public contact info parsed from the channel/video descriptions. */
+  contacts: ContactsSchema.optional(),
   confidence: ConfidenceSchema,
   sourceSnapshotAt: z.string(), // ISO timestamp
   // Optional raw payload, opaque to the rest of the system.

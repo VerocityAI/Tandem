@@ -22,7 +22,7 @@ jobs:
           cache: true
       - working-directory: apps/mobile
         run: |
-          flutter create . --platforms=ios,android,web --org app.tandem --project-name tandem
+          flutter create . --platforms=ios,android,web --org app.cohyve --project-name cohyve
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
           dart format --output=none --set-exit-if-changed .

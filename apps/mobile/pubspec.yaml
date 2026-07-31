@@ -1,5 +1,5 @@
-name: tandem
-description: Tandem (working name) — multi-platform creator collaboration tool.
+name: cohyve
+description: Cohyve (working name) — multi-platform creator collaboration tool.
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -39,6 +39,9 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.1.4
 
+  # Lucide Icons (outline style, modern)
+  lucide_icons_flutter: ^3.1.15
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -50,6 +53,41 @@ dev_dependencies:
   json_serializable: ^6.9.0
   mocktail: ^1.0.4
   golden_toolkit: ^0.15.0
+  flutter_native_splash: ^2.4.4
+  flutter_launcher_icons: ^0.14.2
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/
+
+# Native splash screen (Android + iOS). Generate with:
+#   dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#FAF5F0"
+  color_dark: "#FAF5F0"
+  image: assets/branding/cohyve_logo.png
+  image_dark: assets/branding/cohyve_logo.png
+  android_12:
+    image: assets/branding/cohyve_logo.png
+    color: "#FAF5F0"
+    color_dark: "#FAF5F0"
+  android: true
+  ios: false
+  web: false
+
+# App launcher icons. Generate with:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  remove_alpha_ios: true
+  image_path: "assets/branding/cohyve_logo.png"
+  adaptive_icon_background: "#FAF5F0"
+  adaptive_icon_foreground: "assets/branding/cohyve_logo.png"
+  web:
+    generate: true
+    image_path: "assets/branding/cohyve_logo.png"
+    background_color: "#FAF5F0"
+    theme_color: "#B11F4B"
+

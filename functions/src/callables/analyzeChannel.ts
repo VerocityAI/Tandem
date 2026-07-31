@@ -6,12 +6,13 @@ import {
   channelKey,
   ChannelRefSchema,
   type ChannelProfile,
-} from "@tandem/shared-types";
+} from "@cohyve/shared-types";
 
 import { platformRegistry } from "../adapters/registry.js";
 import { YOUTUBE_API_KEY } from "../adapters/youtube/index.js";
 import { GEMINI_API_KEY, MODEL_CHEAP, MODEL_DEEP, callGemini } from "../lib/gemini.js";
 import { embedText, profileEmbeddingText } from "../lib/embeddings.js";
+import { extractContacts, hasContacts } from "../lib/contacts.js";
 import { AiProfileSchema, buildProfilePrompt } from "../lib/prompts.js";
 import { assertAndIncrement } from "../lib/quota.js";
 import { computeActivitySignals, computePrimaryLanguage } from "../lib/signals.js";
@@ -136,6 +137,18 @@ export const analyzeChannel = onCall(
       region,
     );
 
+    // Parse public contact points from channel + video descriptions.
+    const contactText = [
+      baseProfile.description,
+      ...posts.slice(0, 10).map((p) => p.description ?? ""),
+    ].join("\n");
+    const contacts = extractContacts(contactText);
+    // Diagnostic (keys only, no values) to verify extraction end-to-end.
+    console.log(
+      `[contacts] channel=${channelKey(baseProfile.ref.platform, baseProfile.ref.externalId)} ` +
+        `descLen=${contactText.length} found=[${Object.keys(contacts).join(",")}]`,
+    );
+
     const merged: ChannelProfile = {
       ...baseProfile,
       niche: aiProfile?.niche ?? baseProfile.niche,
@@ -155,6 +168,7 @@ export const analyzeChannel = onCall(
       uploadsPerMonth: activity.uploadsPerMonth ?? baseProfile.uploadsPerMonth,
       lastUploadAt: activity.lastUploadAt ?? baseProfile.lastUploadAt,
       language: language ?? baseProfile.language,
+      contacts: hasContacts(contacts) ? contacts : undefined,
       confidence: aiProfile ? (aiProfile.confidence ?? baseProfile.confidence) : "Low",
       sourceSnapshotAt: new Date().toISOString(),
     };

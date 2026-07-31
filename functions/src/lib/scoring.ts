@@ -17,7 +17,7 @@
  * by the mobile UI.
  */
 
-import type { ChannelProfile, Format } from "@tandem/shared-types";
+import type { ChannelProfile, Format } from "@cohyve/shared-types";
 
 export type AudienceTier = "micro" | "mid" | "large" | "mega";
 

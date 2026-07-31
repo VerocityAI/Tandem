@@ -1,10 +1,10 @@
-# Tandem
+# Cohyve
 
 > **Working name** — the product name is centralized in
 > [`packages/branding/branding.config.json`](packages/branding/branding.config.json)
 > and can be changed across the entire monorepo with a single `npm run branding`.
 
-Tandem is a multi-platform creator collaboration tool. Users sign in with
+Cohyve is a multi-platform creator collaboration tool. Users sign in with
 Google, paste any **YouTube / Instagram / TikTok** channel URL or handle, and
 get an AI-analysed profile plus a ranked list of compatible collaborators —
 each match comes with an explainable fit-score breakdown and an AI rationale.
@@ -13,8 +13,8 @@ each match comes with an explainable fit-score breakdown and an AI rationale.
 
 ```
 apps/
-  marketing/        Astro 4 + Tailwind — public marketing site (tandem.app)
-  mobile/           Flutter app — iOS, Android, Web (app.tandem.app)
+  marketing/        Astro 4 + Tailwind — public marketing site (cohyve.app)
+  mobile/           Flutter app — iOS, Android, Web (app.cohyve.app)
 functions/          Firebase Cloud Functions (gen2, TypeScript, Node 20)
 packages/
   branding/         Single source of truth for product name/colours/domains
@@ -30,9 +30,9 @@ docs/               Design notes and the original HTML prototype
 - **Firebase CLI** (`npm i -g firebase-tools`)
 - **FlutterFire CLI** (`dart pub global activate flutterfire_cli`)
 - **Java 17** (Android builds)
-- A Firebase project for each environment (`tandem-dev`, `tandem-staging`,
-  `tandem-prod`) with two Hosting sites per project:
-  `tandem-<env>-marketing` and `tandem-<env>-app`.
+- A Firebase project for each environment (`cohyve-dev`, `cohyve-staging`,
+  `cohyve-prod`) with two Hosting sites per project:
+  `cohyve-<env>-marketing` and `cohyve-<env>-app`.
 
 ## One-time setup
 
@@ -42,8 +42,8 @@ npm install
 
 # 2. Bootstrap Flutter native folders + Firebase options
 cd apps/mobile
-flutter create . --platforms=ios,android,web --org app.tandem --project-name tandem
-flutterfire configure --project tandem-dev --out lib/core/firebase/firebase_options.dart
+flutter create . --platforms=ios,android,web --org app.cohyve --project-name cohyve
+flutterfire configure --project cohyve-dev --out lib/core/firebase/firebase_options.dart
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 cd ../..
@@ -73,7 +73,7 @@ flutter run -d chrome --dart-define=USE_EMULATOR=true
 
 ## Rename the product
 
-Tandem is the working name. To rename:
+Cohyve is the working name. To rename:
 
 1. Edit [`packages/branding/branding.config.json`](packages/branding/branding.config.json)
    (`name`, `domain`, `bundleIdPrefix`, `colors`, …).

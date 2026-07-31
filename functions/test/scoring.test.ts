@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import type { ChannelProfile } from "@tandem/shared-types";
+import type { ChannelProfile } from "@cohyve/shared-types";
 import {
   ADJACENT_NICHES,
   audienceTier,

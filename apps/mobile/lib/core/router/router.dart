@@ -4,15 +4,15 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:tandem/features/auth/sign_in_screen.dart';
-import 'package:tandem/features/connect/connect_screen.dart';
-import 'package:tandem/features/discover/discover_screen.dart';
-import 'package:tandem/features/matches/matches_screen.dart';
-import 'package:tandem/features/outreach/outreach_screen.dart';
-import 'package:tandem/features/profile/profile_screen.dart';
-import 'package:tandem/features/settings/settings_screen.dart';
-import 'package:tandem/features/shell/app_shell.dart';
-import 'package:tandem/features/shortlist/shortlist_screen.dart';
+import 'package:cohyve/features/auth/sign_in_screen.dart';
+import 'package:cohyve/features/connect/connect_screen.dart';
+import 'package:cohyve/features/discover/discover_screen.dart';
+import 'package:cohyve/features/matches/matches_screen.dart';
+import 'package:cohyve/features/outreach/outreach_screen.dart';
+import 'package:cohyve/features/profile/profile_screen.dart';
+import 'package:cohyve/features/settings/settings_screen.dart';
+import 'package:cohyve/features/shell/app_shell.dart';
+import 'package:cohyve/features/shortlist/shortlist_screen.dart';
 
 final authStateProvider = StreamProvider<User?>(
   (ref) => FirebaseAuth.instance.authStateChanges(),
@@ -21,13 +21,22 @@ final authStateProvider = StreamProvider<User?>(
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authStateProvider);
+  // Refresh the router's redirect logic on auth changes WITHOUT rebuilding the
+  // whole GoRouter (rebuilding resets navigation to initialLocation and can
+  // bounce the user off the current screen mid-operation).
+  final refresh = _AuthRefresh();
+  ref.onDispose(refresh.dispose);
+  ref.listen<AsyncValue<User?>>(authStateProvider, (_, __) => refresh.notify());
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/discover',
-    refreshListenable: _AuthRefresh(auth),
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final auth = ref.read(authStateProvider);
+      // While auth is still resolving, don't make a routing decision — treating
+      // the loading state as "logged out" would wrongly kick the user to /signin.
+      if (auth.isLoading) return null;
       final loggedIn = auth.valueOrNull != null;
       final atSignIn = state.matchedLocation == '/signin';
       if (!loggedIn) return atSignIn ? null : '/signin';
@@ -90,14 +99,5 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 class _AuthRefresh extends ChangeNotifier {
-  _AuthRefresh(AsyncValue<User?> initial) {
-    _last = initial;
-  }
-  AsyncValue<User?>? _last;
-  void update(AsyncValue<User?> next) {
-    if (next != _last) {
-      _last = next;
-      notifyListeners();
-    }
-  }
+  void notify() => notifyListeners();
 }

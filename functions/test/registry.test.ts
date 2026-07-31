@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { platformRegistry } from "../src/adapters/registry.js";
-import { NotImplementedError } from "@tandem/shared-types";
+import { NotImplementedError } from "@cohyve/shared-types";
 
 describe("PlatformRegistry", () => {
   it("detects YouTube @handle URL", () => {

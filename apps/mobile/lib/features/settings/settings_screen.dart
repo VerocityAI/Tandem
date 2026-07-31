@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import 'package:tandem/core/api/api.dart';
-import 'package:tandem/core/data/collections.dart';
+import 'package:cohyve/core/api/api.dart';
+import 'package:cohyve/core/data/collections.dart';
+import 'package:cohyve/core/theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -11,32 +13,81 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: Text(
+          'Settings',
+          style: TextStyle(
+            foreground: Paint()
+              ..shader = LinearGradient(
+                colors: [BrandingExtended.gradientStart, BrandingExtended.gradientMid],
+              ).createShader(const Rect.fromLTWH(0, 0, 300, 70)),
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Account info card
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.account_circle_outlined),
-              title: const Text('Signed in as'),
-              subtitle: Text(user?.email ?? user?.uid ?? '—'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          BrandingExtended.gradientStart,
+                          BrandingExtended.gradientMid,
+                        ],
+                      ),
+                    ),
+                    child: const Icon(LucideIcons.user, size: 26, color: Colors.white),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Signed in as',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user?.email ?? user?.uid ?? '—',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text('Account', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+
+          // Account settings
+          Text('Account', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 10),
           Card(
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.logout),
+                  leading: Icon(LucideIcons.logOut, color: BrandingExtended.danger),
                   title: const Text('Sign out'),
                   onTap: () => FirebaseAuth.instance.signOut(),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.restart_alt, color: Colors.orange),
+                  leading: Icon(LucideIcons.rotateCcw, color: BrandingExtended.warning),
                   title: const Text('Reset onboarding'),
                   subtitle: const Text(
                     'Clear your channels, shortlist and saved searches for a '
@@ -48,15 +99,17 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text('Danger zone', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+
+          // Danger zone
+          Text('Danger Zone', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 10),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              leading: Icon(LucideIcons.trash2, color: BrandingExtended.danger),
               title: const Text(
                 'Delete account',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: BrandingExtended.danger),
               ),
               subtitle: const Text('Permanently removes your data.'),
               onTap: () => _deleteAccount(context, ref),
@@ -120,7 +173,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text('Delete', style: TextStyle(color: BrandingExtended.danger)),
           ),
         ],
       ),

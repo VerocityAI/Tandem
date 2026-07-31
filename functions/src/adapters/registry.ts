@@ -3,7 +3,7 @@ import type {
   Platform,
   PlatformAdapter,
   PlatformRegistry,
-} from "@tandem/shared-types";
+} from "@cohyve/shared-types";
 
 import { youtubeAdapter } from "./youtube/index.js";
 import { instagramAdapter } from "./instagram/index.js";

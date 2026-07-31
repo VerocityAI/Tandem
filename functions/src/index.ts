@@ -1,5 +1,5 @@
 /**
- * Tandem Cloud Functions entrypoint.
+ * Cohyve Cloud Functions entrypoint.
  *
  * All callables are App Check enforced. Secrets live in Secret Manager:
  *   YOUTUBE_API_KEY, GEMINI_API_KEY
